@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarCheck, CalendarDays, ClipboardCheck, LayoutDashboard, LogOut, Settings, Users } from "lucide-react";
+import { CalendarCheck, CalendarDays, ClipboardCheck, FileBarChart, LayoutDashboard, LogOut, Settings, Users } from "lucide-react";
 import { getEmployeeSummary, listEmployees } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
 import AdminEmployeesPage from "./AdminEmployeesPage";
+import Module3SettingsPage from "./Module3SettingsPage";
+import HolidayCalendarPage from "../HolidayCalendarPage";
+import AdminLeavesPage from "./AdminLeavesPage";
+import AdminAttendanceAutomationPage from "./AdminAttendanceAutomationPage";
+import AdminTodayDashboard from "./AdminTodayDashboard";
+import AdminReportsPage from "./AdminReportsPage";
 
 const emptySummary = { total: 0, incomplete: 0, pending: 0, approved: 0, rejected: 0, active: 0, inactive: 0 };
 
@@ -42,31 +48,38 @@ export default function AdminDashboardpage() {
   const signOut = async () => { await logout(); navigate("/login"); };
   const firstName = user?.name?.split(" ")[0] || "Admin";
 
-  return <main className="flex min-h-screen flex-col bg-slate-50 text-slate-800 md:flex-row">
+  return <main className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800 md:flex-row">
     <aside className="flex w-full flex-col border-b border-slate-200 bg-white p-4 md:w-60 md:border-b-0 md:border-r md:p-6">
       <div className="flex items-center gap-2 px-2 text-sm font-bold text-slate-900"><span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-violet-800 to-violet-400 text-lg text-white">✓</span>Crew HRCore</div>
       <nav className="mt-8 grid gap-1">
         <NavButton active={section === "Overview"} onClick={() => setSection("Overview")} icon={LayoutDashboard}>Overview</NavButton>
         <NavButton active={section === "Employees"} onClick={() => setSection("Employees")} icon={Users}>Employees</NavButton>
         <NavButton active={section === "Attendance"} onClick={() => setSection("Attendance")} icon={CalendarCheck}>Attendance</NavButton>
-        <NavButton active={section === "Schedule"} onClick={() => navigate("/admin/settings")} icon={CalendarDays}>Schedule</NavButton>
+        <NavButton active={section === "Schedule"} onClick={() => setSection("Schedule")} icon={CalendarDays}>Schedule</NavButton>
+        <NavButton active={section === "Leaves"} onClick={() => setSection("Leaves")} icon={ClipboardCheck}>Leaves</NavButton>
+        <NavButton active={section === "Reports"} onClick={() => setSection("Reports")} icon={FileBarChart}>Reports</NavButton>
       </nav>
       <p className="mb-2 mt-8 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Settings</p>
-      <NavButton active={section === "Settings"} onClick={() => navigate("/admin/settings")} icon={Settings}>Settings</NavButton>
+      <NavButton active={section === "Settings"} onClick={() => setSection("Settings")} icon={Settings}>Settings</NavButton>
       <button className="mt-4 flex items-center gap-2 rounded-lg border-0 bg-transparent px-3 py-3 text-left text-sm text-slate-500 hover:bg-violet-50 hover:text-violet-800 md:mt-auto" onClick={signOut}><LogOut size={17} /> Sign out</button>
     </aside>
 
     <section className="w-full min-w-0 p-6 sm:p-10">
       <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start"><div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-violet-600">Admin workspace</p><h1 className="text-3xl font-bold tracking-tight text-slate-950">Welcome, {firstName}.</h1><p className="mt-2 text-sm text-slate-500">Manage your people and attendance workspace from one place.</p></div><div className="flex items-center gap-2 text-xs font-bold text-slate-700"><span className="grid h-9 w-9 place-items-center rounded-full bg-violet-600 text-white">{user?.name?.[0]?.toUpperCase() || "A"}</span><span className="hidden sm:inline">{user?.email}</span></div></header>
       {error && <p className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
+      {section === "Overview" && <AdminTodayDashboard />}
       {section === "Overview" && <Overview summary={summary} employees={employees} departments={departments} loading={loading} />}
       {section === "Employees" && <AdminEmployeesPage embedded />}
-      {section !== "Overview" && section !== "Employees" && <Placeholder section={section} />}
+      {section === "Settings" && <div className="-m-6 sm:-m-10"><Module3SettingsPage embedded /></div>}
+      {section === "Schedule" && <div className="-m-6 sm:-m-10"><HolidayCalendarPage adminMode embedded /></div>}
+      {section === "Attendance" && <AdminAttendanceAutomationPage employees={employees} />}
+      {section === "Leaves" && <AdminLeavesPage />}
+      {section === "Reports" && <AdminReportsPage />}
     </section>
   </main>;
 }
 
-function NavButton({ active, onClick, icon: Icon, children }) { return <button onClick={onClick} className={`flex items-center gap-2 rounded-lg border-0 px-3 py-3 text-left text-sm transition ${active ? "bg-violet-50 font-bold text-violet-800" : "bg-transparent text-slate-500 hover:bg-violet-50 hover:text-violet-800"}`}><Icon size={17} />{children}</button>; }
+function NavButton({ active, onClick, icon: Icon, children }) { return <button onClick={onClick} className={`flex items-center gap-2 rounded-lg border-0 px-3 py-3 text-left text-[15px] transition ${active ? "bg-violet-50 font-semibold text-violet-800" : "bg-transparent font-medium text-slate-500 hover:bg-violet-50 hover:text-violet-800"}`}><Icon size={17} />{children}</button>; }
 
 function Overview({ summary, employees, departments, loading }) {
   const cards = [["Total employees", summary.total, "All registered employees"], ["Pending review", summary.pending, "Waiting for approval"], ["Approved", summary.approved, "Ready for attendance"], ["Needs attention", summary.incomplete + summary.rejected, "Incomplete or rejected"]];
@@ -75,4 +88,3 @@ function Overview({ summary, employees, departments, loading }) {
 
 function Progress({ label, value, total, color }) { const percent = total ? Math.round((value / total) * 100) : 0; return <div><div className="flex justify-between text-xs text-slate-500"><span>{label}</span><strong className="text-slate-800">{value}</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><span className={`block h-full rounded-full ${color}`} style={{ width: `${percent}%` }} /></div></div>; }
 
-function Placeholder({ section }) { return <section className="mt-8 grid min-h-80 place-items-center rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm"><div><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-violet-100 text-violet-700"><CalendarDays size={27} /></span><h2 className="mt-5 text-xl font-bold text-slate-900">{section}</h2><p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">This workspace is ready. Its backend functionality will be connected when the module API is implemented.</p></div></section>; }

@@ -19,19 +19,27 @@ const attendanceSchema = new mongoose.Schema({
     required: true,
     match: /^\d{4}-\d{2}-\d{2}$/,
   },
-  checkIn: { type: Date, required: true },
+  checkIn: { type: Date },
   checkOut: { type: Date },
   status: {
     type: String,
-    enum: ["present", "late"],
+    enum: ["present", "late", "absent", "leave", "holiday"],
     required: true,
   },
+  source: {
+    type: String,
+    enum: ["self", "admin", "system"],
+    default: "self",
+    index: true,
+  },
+  missingCheckOut: { type: Boolean, default: false },
   lateMinutes: { type: Number, min: 0, default: 0 },
-  checkInLocation: { type: locationSchema, required: true },
+  checkInLocation: { type: locationSchema },
   checkOutLocation: { type: locationSchema },
   workedMinutes: { type: Number, min: 0 },
 }, { timestamps: true });
 
 attendanceSchema.index({ employee: 1, date: 1 }, { unique: true });
+attendanceSchema.index({ date: 1, status: 1 });
 
 export default mongoose.model("Attendance", attendanceSchema);

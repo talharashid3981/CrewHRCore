@@ -11,6 +11,7 @@ import AttendancePage from "./pages/AttendancePage";
 import ProtectedRoute from "./ProtectedRoute";
 import { Navigate, Route, Routes } from "react-router-dom";
 
+
 function App() {
   return (
     <Routes>

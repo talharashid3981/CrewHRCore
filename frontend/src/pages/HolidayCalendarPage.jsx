@@ -6,7 +6,7 @@ import ExcelJS from "exceljs";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { createHoliday, deleteHoliday, getOfficeSettings, listHolidays, updateHoliday, updateOfficeSettings } from "../api/auth.api";
+import { createHoliday, deleteHoliday, getDashboardCalendar, getOfficeSettings, listHolidays, updateHoliday, updateOfficeSettings } from "../api/auth.api";
 import { useAuth } from "../context/AuthContext";
 
 const defaultOffice = { name: "Main Office", latitude: "", longitude: "", radiusMeters: 100, graceMinutes: 15, weekendDays: [0, 6], isConfigured: false };
@@ -18,6 +18,7 @@ export default function HolidayCalendarPage({ adminMode = false }) {
   const [office, setOffice] = useState(defaultOffice);
   const [officeForm, setOfficeForm] = useState(defaultOffice);
   const [holidays, setHolidays] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState([]);
   const [holidayForm, setHolidayForm] = useState({ name: "", date: dayjs().format("YYYY-MM-DD"), description: "" });
   const [editingId, setEditingId] = useState(null);
   const [range, setRange] = useState({ from: dayjs().startOf("year").format("YYYY-MM-DD"), to: dayjs().endOf("year").format("YYYY-MM-DD") });
@@ -29,10 +30,12 @@ export default function HolidayCalendarPage({ adminMode = false }) {
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [officeData, holidayData] = await Promise.all([getOfficeSettings(), listHolidays(range)]);
+      const month = dayjs(range.from).add(7, "day").format("YYYY-MM");
+      const [officeData, holidayData, calendarData] = await Promise.all([getOfficeSettings(), listHolidays(range), getDashboardCalendar(month)]);
       setOffice(officeData.settings || defaultOffice);
       setOfficeForm({ ...defaultOffice, ...(officeData.settings || {}) });
       setHolidays(holidayData.holidays || []);
+      setCalendarEvents(calendarData.events || []);
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Unable to load calendar settings.");
     } finally { setLoading(false); }
@@ -40,7 +43,7 @@ export default function HolidayCalendarPage({ adminMode = false }) {
 
   useEffect(() => { const timer = setTimeout(() => { load(); }, 0); return () => clearTimeout(timer); }, [load]);
 
-  const events = useMemo(() => holidays.map((holiday) => ({ id: holiday._id, title: holiday.name, start: holiday.date, allDay: true })), [holidays]);
+  const events = useMemo(() => calendarEvents.length ? calendarEvents : holidays.map((holiday) => ({ id: holiday._id, title: holiday.name, start: holiday.date, allDay: true, type: "holiday" })), [calendarEvents, holidays]);
 
   const updateField = (event) => setOfficeForm({ ...officeForm, [event.target.name]: event.target.value });
   const toggleWeekend = (day) => setOfficeForm({ ...officeForm, weekendDays: officeForm.weekendDays.includes(day) ? officeForm.weekendDays.filter((item) => item !== day) : [...officeForm.weekendDays, day].sort() });
@@ -66,7 +69,7 @@ export default function HolidayCalendarPage({ adminMode = false }) {
     finally { setSaving(false); }
   };
 
-  const editHoliday = (holiday) => { setEditingId(holiday._id); setHolidayForm({ name: holiday.name, date: holiday.date, description: holiday.description || "" }); };
+  const editHoliday = (holiday) => { if (!holiday) return; setEditingId(holiday._id); setHolidayForm({ name: holiday.name, date: holiday.date, description: holiday.description || "" }); };
   const removeHoliday = async (id) => { if (!window.confirm("Delete this holiday?")) return; setSaving(true); setError(""); try { const data = await deleteHoliday(id); setNotice(data.message); await load(); } catch (requestError) { setError(requestError.response?.data?.message || "Unable to delete holiday."); } finally { setSaving(false); } };
 
   const exportHolidays = async () => {

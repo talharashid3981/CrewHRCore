@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.use(protect);
 
-// Employee (self), /:id se pehle hi rakhna
+// Employee self-service routes must remain above the /:id routes.
 router.post("/me/onboarding", submitOnboarding);
 router.patch("/me", updateMyProfile);
 router.patch("/me/password", changeMyPassword);

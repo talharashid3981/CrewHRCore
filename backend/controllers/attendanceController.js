@@ -4,6 +4,7 @@ import {
   getHolidaySet,
   getOfficeSettings,
   haversineDistanceMeters,
+  hasApprovedLeaveOn,
   isWeekend,
   isValidCalendarDate,
   todayKey,
@@ -56,11 +57,11 @@ const ensureConfiguredOffice = (settings, res) => {
 const checkCalendar = async (dateKey, settings, res) => {
   const holidaySet = await getHolidaySet([dateKey]);
   if (holidaySet.has(dateKey)) {
-    res.status(409).json({ success: false, message: "Aaj holiday hai" });
+    res.status(409).json({ success: false, message: "Today is a holiday" });
     return false;
   }
   if (isWeekend(dateKey, settings?.weekendDays || [0, 6])) {
-    res.status(409).json({ success: false, message: "Aaj weekend hai" });
+    res.status(409).json({ success: false, message: "Today is a weekend day" });
     return false;
   }
   return true;
@@ -74,11 +75,11 @@ const checkShiftWindow = (user, moment, res) => {
   const shiftStart = parseTime(user.shiftStart);
   const shiftEnd = parseTime(user.shiftEnd);
   if (moment.totalMinutes < shiftStart - 120) {
-    res.status(409).json({ success: false, message: "Abhi check-in ka waqt nahi" });
+    res.status(409).json({ success: false, message: "Check-in is not available yet" });
     return false;
   }
   if (moment.totalMinutes > shiftEnd) {
-    res.status(409).json({ success: false, message: "Shift khatam ho chuki" });
+    res.status(409).json({ success: false, message: "The shift has ended" });
     return false;
   }
   return true;
@@ -86,7 +87,7 @@ const checkShiftWindow = (user, moment, res) => {
 
 const verifyLocation = (location, settings, res) => {
   if (location.accuracy > 100) {
-    res.status(422).json({ success: false, message: "GPS signal kamzor hai, khuli jagah par dobara try karo" });
+    res.status(422).json({ success: false, message: "GPS accuracy is too low. Move to an open area and try again." });
     return null;
   }
   const distance = haversineDistanceMeters(
@@ -97,7 +98,7 @@ const verifyLocation = (location, settings, res) => {
   );
   const radiusMeters = settings.radiusMeters ?? 100;
   if (distance > radiusMeters) {
-    res.status(403).json({ success: false, message: `Aap office se ${radiusMeters}m se zyada door hain` });
+    res.status(403).json({ success: false, message: `You are more than ${radiusMeters} meters away from the office` });
     return null;
   }
   return distance;
@@ -111,20 +112,20 @@ export const getTodayAttendance = async (req, res) => {
       getOfficeSettings(),
     ]);
     const state = { canCheckIn: false, canCheckOut: Boolean(record?.checkIn && !record?.checkOut), reason: null };
-    if (record?.checkOut) state.reason = "Aaj ka attendance complete hai";
-    else if (record) state.reason = "Aap aaj check-in kar chuke hain";
+    if (record?.checkOut) state.reason = "Today's attendance is complete";
+    else if (record) state.reason = "You have already checked in today";
     else if (!settings || !Number.isFinite(settings.latitude) || !Number.isFinite(settings.longitude)) state.reason = "Office location is not set by admin";
     else {
       const holidaySet = await getHolidaySet([date]);
-      if (holidaySet.has(date)) state.reason = "Aaj holiday hai";
-      else if (isWeekend(date, settings.weekendDays)) state.reason = "Aaj weekend hai";
+      if (holidaySet.has(date)) state.reason = "Today is a holiday";
+      else if (isWeekend(date, settings.weekendDays)) state.reason = "Today is a weekend day";
       else if (!req.user.shiftStart || !req.user.shiftEnd) state.reason = "Your shift has not been configured";
       else {
         const moment = toKarachiMoment();
         const shiftStart = parseTime(req.user.shiftStart);
         const shiftEnd = parseTime(req.user.shiftEnd);
-        if (moment.totalMinutes < shiftStart - 120) state.reason = "Abhi check-in ka waqt nahi";
-        else if (moment.totalMinutes > shiftEnd) state.reason = "Shift khatam ho chuki";
+        if (moment.totalMinutes < shiftStart - 120) state.reason = "Check-in is not available yet";
+        else if (moment.totalMinutes > shiftEnd) state.reason = "The shift has ended";
         else state.canCheckIn = true;
       }
     }
@@ -144,11 +145,14 @@ export const checkIn = async (req, res) => {
     if (!ensureConfiguredOffice(settings, res)) return;
     const moment = toKarachiMoment();
     if (!(await checkCalendar(moment.dateKey, settings, res))) return;
+    if (await hasApprovedLeaveOn(req.user._id, moment.dateKey)) {
+      return res.status(409).json({ success: false, message: "You are on leave today" });
+    }
     if (!checkShiftWindow(req.user, moment, res)) return;
 
     const existing = await attendanceModel.findOne({ employee: req.user._id, date: moment.dateKey });
     if (existing) {
-      return res.status(409).json({ success: false, message: "Aap aaj check-in kar chuke hain" });
+      return res.status(409).json({ success: false, message: "You have already checked in today" });
     }
 
     const distance = verifyLocation(parsed.data, settings, res);
@@ -168,7 +172,7 @@ export const checkIn = async (req, res) => {
 
     return res.status(201).json({ success: true, message: isLate ? "Check-in successful (late)" : "Check-in successful", attendance: publicAttendance(record) });
   } catch (error) {
-    if (error?.code === 11000) return res.status(409).json({ success: false, message: "Aap aaj check-in kar chuke hain" });
+    if (error?.code === 11000) return res.status(409).json({ success: false, message: "You have already checked in today" });
     console.error("Check-in failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
@@ -182,8 +186,8 @@ export const checkOut = async (req, res) => {
     if (!ensureConfiguredOffice(settings, res)) return;
     const date = todayKey();
     const record = await attendanceModel.findOne({ employee: req.user._id, date });
-    if (!record) return res.status(409).json({ success: false, message: "Aaj check-in record nahi mila" });
-    if (record.checkOut) return res.status(409).json({ success: false, message: "Aap aaj check-out kar chuke hain" });
+    if (!record) return res.status(409).json({ success: false, message: "No check-in record was found for today" });
+    if (record.checkOut) return res.status(409).json({ success: false, message: "You have already checked out today" });
 
     const distance = verifyLocation(parsed.data, settings, res);
     if (distance === null) return;

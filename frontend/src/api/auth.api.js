@@ -73,3 +73,60 @@ export const checkOutAttendance = (location) =>
 
 export const getAttendanceHistory = (params = {}) =>
   api.get("/attendance/history", { params }).then((res) => res.data);
+
+export const listLeaveTypes = (params = {}) =>
+  api.get("/leave-types", { params }).then((res) => res.data);
+
+export const createLeaveType = (data) =>
+  api.post("/leave-types", data).then((res) => res.data);
+
+export const updateLeaveType = (id, data) =>
+  api.patch(`/leave-types/${id}`, data).then((res) => res.data);
+
+export const previewLeave = (params) =>
+  api.get("/leaves/preview", { params }).then((res) => res.data);
+
+export const getMyLeaveBalance = (year) =>
+  api.get("/leaves/balance", { params: { year } }).then((res) => res.data);
+
+export const applyLeave = (data) =>
+  api.post("/leaves", data).then((res) => res.data);
+
+export const getMyLeaves = (params = {}) =>
+  api.get("/leaves/me", { params }).then((res) => res.data);
+
+export const cancelLeave = (id) =>
+  api.patch(`/leaves/${id}/cancel`).then((res) => res.data);
+
+export const listLeaveRequests = (params = {}) =>
+  api.get("/leaves", { params }).then((res) => res.data);
+
+export const approveLeave = (id) =>
+  api.patch(`/leaves/${id}/approve`).then((res) => res.data);
+
+export const rejectLeave = (id, note) =>
+  api.patch(`/leaves/${id}/reject`, { note }).then((res) => res.data);
+
+export const recomputeAttendance = (data) =>
+  api.post("/admin/attendance/recompute", data).then((res) => res.data);
+
+export const resolveAttendanceRange = (employeeId, params) =>
+  api.get(`/admin/attendance/resolve/${employeeId}`, { params }).then((res) => res.data);
+
+export const getMonthlyReport = (params = {}) =>
+  api.get("/reports/monthly", { params }).then((res) => res.data);
+
+export const getEmployeeMonthlyReport = (employeeId, params = {}) =>
+  api.get(`/reports/monthly/${employeeId}`, { params }).then((res) => res.data);
+
+export const exportMonthlyReport = (params = {}) =>
+  api.get("/reports/monthly/export", { params, responseType: "blob" }).then((res) => res);
+
+export const getDashboardToday = () =>
+  api.get("/dashboard/today").then((res) => res.data);
+
+export const getDashboardCalendar = (month) =>
+  api.get("/dashboard/calendar", { params: { month } }).then((res) => res.data);
+
+export const getDashboardMe = () =>
+  api.get("/dashboard/me").then((res) => res.data);

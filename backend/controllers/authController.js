@@ -156,7 +156,7 @@ export const loginController = async (req, res) => {
     res.cookie("token", signToken(user._id.toString()), cookieOptions(rememberMe));
     return res.status(200).json({
       success: true,
-      message: "Login Successfully",
+      message: "Login successful",
       user: publicUser(user),
     });
   } catch (error) {

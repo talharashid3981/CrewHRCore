@@ -1,6 +1,7 @@
 import officeSettingsModel from "../models/OfficeSettings.js";
 import holidayModel from "../models/Holiday.js";
 import { isValidCalendarDate } from "./calendar.js";
+import leaveRequestModel from "../models/LeaveRequest.js";
 
 const partsForKarachi = (date) => new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Karachi",
@@ -53,3 +54,10 @@ export const haversineDistanceMeters = (lat1, lng1, lat2, lng2) => {
     + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLng / 2) ** 2;
   return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
+
+export const hasApprovedLeaveOn = async (employeeId, dateKey) => Boolean(await leaveRequestModel.exists({
+  employee: employeeId,
+  status: "approved",
+  from: { $lte: dateKey },
+  to: { $gte: dateKey },
+}));

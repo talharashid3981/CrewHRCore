@@ -82,3 +82,23 @@ export const sendOnboardingRejectedEmail = (user, note) => sendEmail({
     <p>Please log in, correct them and submit again.</p>
   `,
 });
+
+export const sendLeaveApprovedEmail = (user, leave) => sendEmail({
+  to: user.email,
+  subject: "Your Crew HRCore leave was approved",
+  htmlContent: `
+    <h2>Hello ${escapeHtml(user.name)},</h2>
+    <p>Your <b>${escapeHtml(leave.leaveType?.name || "leave")}</b> request has been approved.</p>
+    <p>${escapeHtml(leave.from)} to ${escapeHtml(leave.to)} (${escapeHtml(leave.days)} working days)</p>
+  `,
+});
+
+export const sendLeaveRejectedEmail = (user, leave, note) => sendEmail({
+  to: user.email,
+  subject: "Your Crew HRCore leave was rejected",
+  htmlContent: `
+    <h2>Hello ${escapeHtml(user.name)},</h2>
+    <p>Your leave request for ${escapeHtml(leave.from)} to ${escapeHtml(leave.to)} was rejected.</p>
+    <p><b>Admin note:</b> ${escapeHtml(note)}</p>
+  `,
+});
