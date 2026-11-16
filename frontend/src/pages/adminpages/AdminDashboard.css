@@ -1,0 +1,129 @@
+.admin-dashboard-page {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.7), transparent 38%),
+    repeating-linear-gradient(150deg, rgba(124,58,237,.035) 0 2px, transparent 2px 150px),
+    #f1edff !important;
+}
+
+.admin-dashboard-page,
+.admin-dashboard-page * { box-sizing: border-box; }
+.admin-dashboard-page button { border: 0; font: inherit; cursor: pointer; }
+.admin-dashboard-page h1,
+.admin-dashboard-page h2,
+.admin-dashboard-page h3,
+.admin-dashboard-page p { margin-top: 0; }
+
+.admin-dashboard-shell {
+  width: min(1358px, 100%);
+  min-height: calc(100vh - 64px);
+  border-color: rgba(255,255,255,.85) !important;
+  background: rgba(255,255,255,.76) !important;
+  box-shadow: 0 24px 80px rgba(106,13,173,.12) !important;
+}
+
+.admin-sidebar {
+  width: 218px !important;
+  padding: 26px 13px 20px !important;
+  border-color: rgba(229,231,235,.7) !important;
+  background: rgba(249,248,255,.82) !important;
+}
+
+.admin-sidebar > div:first-child { padding-inline: 10px; }
+.admin-sidebar nav button { min-height: 42px; }
+.admin-sidebar .mt-12 { margin-top: 34px; }
+.admin-sidebar .mt-10 { margin-top: 30px; }
+.admin-sidebar > div:first-child > div:first-child { background: linear-gradient(135deg,#6a0dad,#a78bfa) !important; color: #fff !important; box-shadow: 0 8px 18px rgba(106,13,173,.2); }
+.admin-sidebar > div:first-child strong { color: #0f172a !important; }
+.admin-sidebar > div:first-child span { color: #9b8dbd !important; }
+.admin-sidebar > p { color: #9b8dbd !important; }
+.admin-sidebar nav button { color: #4b5563 !important; background: transparent !important; }
+.admin-sidebar nav button:hover { color: #6a0dad !important; background: #f3e8ff !important; }
+.admin-sidebar nav button.bg-gradient-to-r { color: #fff !important; background: linear-gradient(100deg,#6a0dad,#7c3aed) !important; box-shadow: 0 8px 18px rgba(106,13,173,.2); }
+.admin-sidebar .mt-auto { border-color: #e5e7eb !important; }
+.admin-sidebar .mt-auto strong { color: #1f2937 !important; }
+.admin-sidebar .mt-auto span { color: #6b7280 !important; }
+.admin-sidebar .mt-auto > button { color: #6a0dad !important; border: 1px solid #d8b4fe !important; background: #fff !important; }
+
+.admin-content {
+  padding: 29px 23px 34px !important;
+  background: rgba(255,255,255,.46) !important;
+}
+
+.admin-content > header > div:first-child > div { color: #7c6a9b !important; }
+.admin-content > header > div:first-child > div strong { color: #6a0dad !important; }
+.admin-content > header h1 { color: #0f172a !important; font-weight: 750; }
+.admin-content > header > div:last-child { display: flex; align-items: center; gap: 8px; }
+.admin-content > header > div:last-child > div { border: 1px solid #c4b5fd !important; background: rgba(255,255,255,.8) !important; }
+.admin-content > header > div:last-child input { color: #1f2937; }
+.admin-content > header > div:last-child input::placeholder { color: #9b8dbd; }
+.admin-content > header > div:last-child button { color: #fff !important; background: linear-gradient(100deg,#6a0dad,#7c3aed) !important; box-shadow: 0 7px 16px rgba(106,13,173,.2); }
+
+.admin-content > header + .mt-5 { display: flex; align-items: center; justify-content: space-between; }
+.admin-content > header + .mt-5 > div:first-child { display: flex; overflow: hidden; border: 1px solid #d8b4fe; border-radius: 10px; background: rgba(255,255,255,.8); }
+.admin-content > header + .mt-5 > div:first-child button { color: #1f2937 !important; background: transparent !important; border-right: 1px solid #e9d5ff; }
+.admin-content > header + .mt-5 > div:first-child button:last-child { border-right: 0; }
+.admin-content > header + .mt-5 > div:first-child button:first-child { color: #fff !important; background: linear-gradient(100deg,#6a0dad,#7c3aed) !important; }
+.admin-content > header + .mt-5 > div:last-child { display: flex; gap: 8px; }
+.admin-content > header + .mt-5 > div:last-child button { color: #4c1d95 !important; border: 1px solid #d8b4fe !important; background: rgba(255,255,255,.8) !important; }
+
+.admin-content > header { max-width: none !important; }
+.admin-content > header h1 { font-size: 32px !important; }
+.admin-content > header + .mt-5 { margin-top: 15px !important; }
+.admin-content > header + .mt-5 + .admin-dashboard-grid { margin-top: 14px !important; }
+
+.admin-dashboard-grid {
+  grid-template-columns: minmax(0, 1fr) 326px !important;
+  align-items: start;
+  gap: 15px !important;
+}
+
+.admin-dashboard-grid > .min-w-0 { min-width: 0; }
+.admin-dashboard-grid > .min-w-0 > .grid { gap: 14px !important; }
+.admin-dashboard-grid > .min-w-0 > .grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.admin-dashboard-grid article,
+.admin-dashboard-grid section { border-color: #e9d5ff !important; background: rgba(255,255,255,.78) !important; }
+.admin-dashboard-grid article p { color: #6b7280 !important; }
+.admin-dashboard-grid article strong { color: #0f172a !important; }
+.admin-dashboard-grid article button { color: #1f2937 !important; background: transparent !important; }
+.admin-dashboard-grid article > div:last-child { color: #9ca3af !important; border-color: #f1f5f9 !important; }
+.admin-dashboard-grid article > div:last-child span { color: #16a34a !important; background: #ecfdf5 !important; }
+.admin-dashboard-grid > .min-w-0 > section h2,
+.admin-dashboard-grid > section:last-child h2 { color: #0f172a !important; }
+.admin-dashboard-grid > .min-w-0 > section p,
+.admin-dashboard-grid > section:last-child p { color: #6b7280; }
+.admin-dashboard-grid > .min-w-0 > section h3 { color: #6a0dad !important; }
+.admin-dashboard-grid > .min-w-0 > section button { color: #4c1d95 !important; border-color: #d8b4fe !important; background: #fff !important; }
+.admin-dashboard-grid > .min-w-0 > section:first-child span.bg-gradient-to-t { background: linear-gradient(to top,#6a0dad,#8b5cf6) !important; }
+.admin-dashboard-grid > .min-w-0 > section:first-child span.bg-\[\#9B5CFA\] { background: #9b5cfa !important; }
+.admin-dashboard-grid > .min-w-0 > section:first-child span.bg-\[\#C4B5FD\] { background: #c4b5fd !important; }
+.admin-dashboard-grid > section:last-child > div:first-child { border-color: #e9d5ff !important; }
+.admin-dashboard-grid > section:last-child > div:first-child > div:last-child { color: #7c6a9b !important; border-color: #7c3aed !important; }
+.admin-dashboard-grid > section:last-child > div:first-child span { color: #7c3aed; }
+.admin-dashboard-grid > section:last-child > div:first-child b { color: #7c3aed; background: #f3e8ff; }
+.admin-dashboard-grid > section:last-child > div:last-child > div strong { color: #1f2937 !important; }
+.admin-dashboard-grid > section:last-child > div:last-child > div p { color: #7c6a9b !important; }
+.admin-dashboard-grid > section:last-child > div:last-child > div span { color: #1f2937; }
+
+.admin-dashboard-grid > section:last-child { min-height: 100%; }
+.admin-dashboard-grid > section:last-child > div:first-child { padding: 19px 17px 0 !important; }
+.admin-dashboard-grid > section:last-child > div:last-child > div { min-height: 93px; padding: 16px 17px !important; }
+
+@media (max-width: 1100px) {
+  .admin-dashboard-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .admin-dashboard-grid > section:last-child { min-height: 0; }
+  .admin-dashboard-grid > section:last-child > div:last-child { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-dashboard-grid > .min-w-0 > .grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+
+@media (max-width: 760px) {
+  .admin-dashboard-page { padding: 0 !important; }
+  .admin-dashboard-shell { min-height: 100vh; border-radius: 0 !important; display: block !important; }
+  .admin-sidebar { width: 100% !important; border-right: 0 !important; border-bottom: 1px solid #e5e7eb; padding: 18px 16px 12px !important; }
+  .admin-sidebar nav { display: flex; overflow-x: auto; margin-top: 20px !important; }
+  .admin-sidebar nav button { flex: 0 0 auto; }
+  .admin-sidebar .mt-auto { margin-top: 20px !important; }
+  .admin-content { padding: 22px 15px 28px !important; }
+  .admin-content > header h1 { font-size: 28px !important; }
+  .admin-dashboard-grid > .min-w-0 > .grid { grid-template-columns: 1fr !important; }
+  .admin-dashboard-grid > section:last-child > div:last-child { grid-template-columns: 1fr !important; }
+}
