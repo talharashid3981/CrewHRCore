@@ -125,6 +125,9 @@ export const exportMonthlyReport = (params = {}) =>
 export const getDashboardToday = () =>
   api.get("/dashboard/today").then((res) => res.data);
 
+export const getAdminDashboard = () =>
+  api.get("/dashboard/admin").then((res) => res.data);
+
 export const getDashboardCalendar = (month) =>
   api.get("/dashboard/calendar", { params: { month } }).then((res) => res.data);
 

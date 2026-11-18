@@ -78,6 +78,7 @@ const dayStatusTone = (status) => {
 };
 
 const dayTypeLabel = (status) => {
+  if (status === "notEligible") return "Before start date";
   if (status === "holiday") return "Public holiday";
   if (status === "weekend") return "Weekend";
   if (status === "leave") return "On leave";
@@ -310,27 +311,32 @@ export default function EmployeeCalendarView({ embedded = false }) {
           const isSelected = date === selectedDate;
           const isCurrentDate = date === today;
           const dayData = dayMap.get(date);
-          const marker = selectedFilters.attendance
+          const marker = selectedFilters.attendance &&
+            dayData?.status !== "notEligible"
             ? dayStatusTone(dayData?.attendance?.status || dayData?.status)
             : "";
           const events = visibleRangeEvents
             .filter(
               (event) =>
-                event.start <= date &&
-                (event.to || event.start) >= date,
+                event.start === date ||
+                (date === visibleDates[0] &&
+                  event.start < date &&
+                  (event.to || event.start) >= date),
             )
             .slice(0, 2);
           const eventCount = visibleRangeEvents.filter(
             (event) =>
-              event.start <= date &&
-              (event.to || event.start) >= date,
+              event.start === date ||
+              (date === visibleDates[0] &&
+                event.start < date &&
+                (event.to || event.start) >= date),
           ).length;
 
           return (
             <button
               aria-label={`${dateObj.format("dddd, D MMMM YYYY")}${events.length ? `, ${events.map((event) => event.title).join(", ")}` : ""}`}
               aria-pressed={isSelected}
-              className={`flex min-h-[64px] min-w-0 flex-col border-b border-r border-slate-100 p-1.5 text-left transition hover:bg-violet-50/60 sm:min-h-[82px] sm:p-2 lg:min-h-[92px] ${
+              className={`flex min-h-[54px] min-w-0 flex-col border-b border-r border-slate-100 p-1 text-left transition hover:bg-violet-50/60 sm:min-h-[64px] sm:p-1.5 lg:min-h-[72px] lg:p-2 ${
                 (dayData
                   ? dayData.status === "weekend"
                   : dateObj.day() === 0 || dateObj.day() === 6)
@@ -368,6 +374,10 @@ export default function EmployeeCalendarView({ embedded = false }) {
                     title={event.title}
                   >
                     {event.title}
+                    {event.type === "leave" &&
+                      event.days > 1 &&
+                      ` · ${event.days}d`}
+                    {event.start < date && " · continued"}
                   </span>
                 ))}
                 {eventCount > events.length && (
@@ -414,7 +424,7 @@ export default function EmployeeCalendarView({ embedded = false }) {
 
   return (
     <main
-      className={`@container/calendar min-w-0 bg-[#F8FAFC] text-slate-800 ${
+      className={`@container/calendar w-full min-w-0 max-w-full overflow-x-clip bg-[#F8FAFC] text-slate-800 ${
         embedded ? "min-h-full p-4 sm:p-6 lg:p-7" : "min-h-screen p-4 sm:p-6"
       }`}
     >
@@ -467,7 +477,7 @@ export default function EmployeeCalendarView({ embedded = false }) {
           </div>
         )}
 
-        <div className="grid min-w-0 items-start gap-4 @min-[880px]/calendar:grid-cols-[minmax(0,1fr)_290px]">
+        <div className="grid min-w-0 items-start gap-4 @min-[700px]/calendar:grid-cols-[minmax(0,1fr)_290px]">
           <section className="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_6px_18px_rgba(15,23,42,0.04)] sm:p-4 lg:p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
@@ -541,7 +551,7 @@ export default function EmployeeCalendarView({ embedded = false }) {
               >
                 {Array.from({ length: 42 }, (_, index) => (
                   <span
-                    className="min-h-[64px] animate-pulse border-b border-r border-slate-100 bg-slate-50 sm:min-h-[82px] lg:min-h-[92px]"
+                    className="min-h-[54px] animate-pulse border-b border-r border-slate-100 bg-slate-50 sm:min-h-[64px] lg:min-h-[72px]"
                     key={index}
                   />
                 ))}
@@ -592,7 +602,7 @@ export default function EmployeeCalendarView({ embedded = false }) {
             )}
           </section>
 
-          <aside className="grid min-w-0 gap-4 sm:grid-cols-2 @min-[880px]/calendar:grid-cols-1">
+          <aside className="grid min-w-0 gap-4 sm:grid-cols-2 @min-[700px]/calendar:grid-cols-1">
             <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-['Poppins',sans-serif] text-[14px] font-semibold text-slate-900">
@@ -694,7 +704,7 @@ export default function EmployeeCalendarView({ embedded = false }) {
               )}
             </section>
 
-            <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)] sm:col-span-2 @min-[880px]/calendar:col-span-1">
+            <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)] sm:col-span-2 @min-[700px]/calendar:col-span-1">
               <h2 className="font-['Poppins',sans-serif] text-[14px] font-semibold text-slate-900">
                 Show on calendar
               </h2>

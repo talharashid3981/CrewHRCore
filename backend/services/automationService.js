@@ -98,22 +98,25 @@ export const resolveDayStatus = async (employeeId, dateKey) => {
 };
 
 export const resolveRange = async (employeeId, from, to) => {
-  const [context, rows] = await Promise.all([
+  const [employee, context, rows] = await Promise.all([
+    userModel.findById(employeeId).select("joiningDate approvedAt").lean(),
     getContext(from, to),
     attendanceModel.find({ employee: employeeId, date: { $gte: from, $lte: to } }).lean(),
   ]);
   const rowMap = new Map(rows.map((row) => [row.date, row]));
+  const employeeStart = employee ? eligibleFrom(employee) : null;
   const result = [];
   for (let date = from; date <= to; date = addDays(date, 1)) {
     const row = rowMap.get(date);
     let status = row?.status;
-    if (!status) {
+    if (!employeeStart || date < employeeStart) status = "notEligible";
+    else if (!status) {
       if (isWeekend(date, context.weekendDays)) status = "weekend";
       else if (context.holidays.has(date)) status = "holiday";
       else if (leaveOn(context.leaves, employeeId, date)) status = "leave";
       else status = date < getKarachiDateString() ? "absent" : "pending";
     }
-    result.push({ date, status, attendance: row || null });
+    result.push({ date, status, attendance: status === "notEligible" ? null : row || null });
   }
   return result;
 };
@@ -133,14 +136,14 @@ export const resolveRangeBulk = async (employees, from, to) => {
     for (let date = from; date <= to; date = addDays(date, 1)) {
       const row = rowMap.get(`${employee._id}:${date}`);
       let status = row?.status;
-      if (!status && (!employeeStart || date < employeeStart)) status = "notEligible";
+      if (!employeeStart || date < employeeStart) status = "notEligible";
       else if (!status) {
         if (isWeekend(date, context.weekendDays)) status = "weekend";
         else if (context.holidays.has(date)) status = "holiday";
         else if (leaveOn(context.leaves, employee._id, date)) status = "leave";
         else status = date < today ? "absent" : "pending";
       }
-      employeeRows.push({ date, status, attendance: row || null });
+      employeeRows.push({ date, status, attendance: status === "notEligible" ? null : row || null });
     }
     result.set(String(employee._id), employeeRows);
   }

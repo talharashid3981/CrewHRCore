@@ -1,4 +1,5 @@
 import attendanceModel from "../models/Attendance.js";
+import automationStateModel from "../models/AutomationState.js";
 import holidayModel from "../models/Holiday.js";
 import leaveRequestModel from "../models/LeaveRequest.js";
 import userModel from "../models/User.js";
@@ -9,6 +10,262 @@ import { getResolutionContext, resolveRange, resolveRangeBulk } from "../service
 
 const employeeFilter = { role: "employee", onboardingStatus: "approved" };
 const calendarMonth = (month) => typeof month === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? { from: `${month}-01`, to: month.endsWith("12") ? `${Number(month.slice(0, 4)) + 1}-01-01` : `${month.slice(0, 4)}-${String(Number(month.slice(5, 7)) + 1).padStart(2, "0")}-01` } : null;
+
+export const dashboardAdmin = async (req, res) => {
+  try {
+    const date = getKarachiDateString();
+    const monthStart = new Date(`${date.slice(0, 7)}-01T00:00:00+05:00`);
+    const activityStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const attendanceFrom = addDays(date, -6);
+    const employeeFilter = { role: "employee" };
+    const activeEmployeeFilter = { ...employeeFilter, isActive: true };
+    const [activeEmployees, activeEmployeeIds] = await Promise.all([
+      userModel.find({
+        ...activeEmployeeFilter,
+        onboardingStatus: "approved",
+      }).select("_id name department joiningDate approvedAt").lean(),
+      userModel.find(activeEmployeeFilter).distinct("_id"),
+    ]);
+
+    const [
+      totalEmployees,
+      statusCounts,
+      newThisMonth,
+      pendingProfiles,
+      pendingLeaves,
+      pendingLeaveCount,
+      missingCheckOutCount,
+      missingCheckOuts,
+      attendanceDays,
+      automationState,
+      reviewStats,
+      recentProfiles,
+      recentLeaves,
+      recentAttendance,
+    ] = await Promise.all([
+      userModel.countDocuments(employeeFilter),
+      userModel.aggregate([
+        { $match: employeeFilter },
+        { $group: { _id: "$onboardingStatus", count: { $sum: 1 } } },
+      ]),
+      userModel.countDocuments({ ...employeeFilter, createdAt: { $gte: monthStart } }),
+      userModel.find({
+        ...employeeFilter,
+        onboardingStatus: "pending",
+        onboardingSubmittedAt: { $exists: true, $type: "date" },
+      }).select("name onboardingSubmittedAt").sort({ onboardingSubmittedAt: 1 }).limit(1).lean(),
+      leaveRequestModel.find({ employee: { $in: activeEmployeeIds }, status: "pending" })
+        .select("_id createdAt").sort({ createdAt: 1 }).limit(1).lean(),
+      leaveRequestModel.countDocuments({ employee: { $in: activeEmployeeIds }, status: "pending" }),
+      attendanceModel.countDocuments({
+        date: { $gte: attendanceFrom, $lte: date },
+        missingCheckOut: true,
+      }),
+      attendanceModel.find({
+        date: { $gte: attendanceFrom, $lte: date },
+        missingCheckOut: true,
+      }).populate("employee", "name").select("date employee").sort({ date: 1 }).limit(20).lean(),
+      resolveRangeBulk(activeEmployees, date, date),
+      automationStateModel.findOne({ key: "dailyClose" }).select("updatedAt lastProcessedDate").lean(),
+      userModel.aggregate([
+        {
+          $match: {
+            ...employeeFilter,
+            onboardingStatus: "approved",
+            onboardingSubmittedAt: { $exists: true },
+            approvedAt: { $exists: true },
+            $expr: { $gte: ["$approvedAt", "$onboardingSubmittedAt"] },
+          },
+        },
+        { $project: { duration: { $subtract: ["$approvedAt", "$onboardingSubmittedAt"] } } },
+        { $group: { _id: null, averageDuration: { $avg: "$duration" } } },
+      ]),
+      userModel.find({
+        ...employeeFilter,
+        $or: [
+          { onboardingSubmittedAt: { $gte: activityStart } },
+          { approvedAt: { $gte: activityStart } },
+          { onboardingStatus: "rejected", updatedAt: { $gte: activityStart } },
+        ],
+      }).select("name onboardingStatus onboardingSubmittedAt approvedAt rejectionNote updatedAt").sort({ updatedAt: -1 }).limit(8).lean(),
+      leaveRequestModel.find({
+        employee: { $in: activeEmployeeIds },
+        $or: [
+          { createdAt: { $gte: activityStart } },
+          { reviewedAt: { $gte: activityStart } },
+        ],
+      }).populate("employee", "name").populate("leaveType", "name")
+        .select("employee leaveType status days createdAt reviewedAt").sort({ updatedAt: -1 }).limit(8).lean(),
+      attendanceModel.find({
+        date: { $gte: attendanceFrom, $lte: date },
+        checkIn: { $exists: true },
+      }).populate("employee", "name")
+        .select("employee status date checkIn lateMinutes").sort({ checkIn: -1 }).limit(8).lean(),
+    ]);
+
+    const counts = Object.fromEntries(statusCounts.map(({ _id, count }) => [_id, count]));
+    const todayRows = activeEmployees.map((employee) => ({
+      employee,
+      resolved: attendanceDays.get(String(employee._id))?.[0],
+    }));
+    const checkedInRows = todayRows.filter(({ resolved }) =>
+      ["present", "late"].includes(resolved?.status),
+    );
+    const lateRows = todayRows.filter(({ resolved }) => resolved?.status === "late");
+    const onLeaveRows = todayRows.filter(({ resolved }) => resolved?.status === "leave");
+    const notCheckedInRows = todayRows.filter(({ resolved }) => resolved?.status === "pending");
+    const [context, holiday] = await Promise.all([
+      getResolutionContext(date, date),
+      holidayModel.findOne({ date }).select("name date").lean(),
+    ]);
+    const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+    const dayType = context.holidays.has(date)
+      ? "holiday"
+      : context.weekendDays.includes(weekday)
+        ? "weekend"
+        : "working";
+    const expected = dayType === "working" ? activeEmployees.length : 0;
+    const departmentMap = new Map();
+    for (const { employee, resolved } of todayRows) {
+      const name = employee.department || "General";
+      const department = departmentMap.get(name) || { name, total: 0, checkedIn: 0 };
+      department.total += 1;
+      if (["present", "late"].includes(resolved?.status)) department.checkedIn += 1;
+      departmentMap.set(name, department);
+    }
+
+    const averageReviewDays = reviewStats[0]?.averageDuration !== undefined
+      ? Number((reviewStats[0].averageDuration / (24 * 60 * 60 * 1000)).toFixed(1))
+      : null;
+    const oldestPendingProfile = pendingProfiles[0];
+    const oldestPendingLeave = pendingLeaves[0];
+    const daysSince = (value) => value
+      ? Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / (24 * 60 * 60 * 1000)))
+      : null;
+
+    const activities = [];
+    for (const profile of recentProfiles) {
+      if (profile.onboardingSubmittedAt && profile.onboardingSubmittedAt >= activityStart) {
+        activities.push({
+          id: `onboarding-${profile._id}`,
+          kind: "onboarding",
+          title: `${profile.name} submitted onboarding`,
+          detail: "Pending review",
+          timestamp: profile.onboardingSubmittedAt,
+        });
+      }
+      if (profile.approvedAt && profile.approvedAt >= activityStart) {
+        activities.push({
+          id: `approved-${profile._id}`,
+          kind: "approved",
+          title: `${profile.name} profile approved`,
+          detail: "Employee is ready for attendance",
+          timestamp: profile.approvedAt,
+        });
+      }
+      if (profile.onboardingStatus === "rejected" && profile.updatedAt >= activityStart) {
+        activities.push({
+          id: `rejected-${profile._id}`,
+          kind: "rejected",
+          title: `${profile.name} profile needs changes`,
+          detail: profile.rejectionNote || "Returned for updates",
+          timestamp: profile.updatedAt,
+        });
+      }
+    }
+    for (const leave of recentLeaves) {
+      if (leave.createdAt >= activityStart) {
+        activities.push({
+          id: `leave-${leave._id}`,
+          kind: "leave",
+          title: `${leave.employee?.name || "Employee"} requested ${leave.leaveType?.name || "leave"}`,
+          detail: `${leave.status} · ${leave.days} working day${leave.days === 1 ? "" : "s"}`,
+          timestamp: leave.createdAt,
+        });
+      }
+      if (leave.reviewedAt && leave.reviewedAt >= activityStart) {
+        activities.push({
+          id: `leave-review-${leave._id}`,
+          kind: leave.status === "approved" ? "approved" : "rejected",
+          title: `Leave ${leave.status} for ${leave.employee?.name || "employee"}`,
+          detail: `${leave.leaveType?.name || "Leave"} · ${leave.days} working day${leave.days === 1 ? "" : "s"}`,
+          timestamp: leave.reviewedAt,
+        });
+      }
+    }
+    for (const record of recentAttendance) {
+      activities.push({
+        id: `attendance-${record._id}`,
+        kind: record.status === "late" ? "late" : "attendance",
+        title: `${record.employee?.name || "Employee"} checked in`,
+        detail: record.status === "late"
+          ? `Late · ${record.lateMinutes || 0} minutes`
+          : `On time · ${record.date}`,
+        timestamp: record.checkIn,
+      });
+    }
+    activities.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
+
+    return res.json({
+      success: true,
+      date,
+      dayType,
+      holiday: holiday ? { name: holiday.name, date: holiday.date } : null,
+      summary: {
+        total: totalEmployees,
+        active: activeEmployees.length,
+        pending: counts.pending || 0,
+        approved: counts.approved || 0,
+        incomplete: counts.incomplete || 0,
+        rejected: counts.rejected || 0,
+        newThisMonth,
+        pendingLeaves: pendingLeaveCount,
+      },
+      attendance: {
+        expected,
+        checkedIn: dayType === "working" ? checkedInRows.length : 0,
+        present: dayType === "working"
+          ? checkedInRows.filter(({ resolved }) => resolved.status === "present").length
+          : 0,
+        late: dayType === "working" ? lateRows.length : 0,
+        notCheckedIn: dayType === "working" ? notCheckedInRows.length : 0,
+        onLeave: dayType === "working" ? onLeaveRows.length : 0,
+        holiday: holiday?.name || null,
+      },
+      onboarding: {
+        total: totalEmployees,
+        approved: counts.approved || 0,
+        pending: counts.pending || 0,
+        incomplete: counts.incomplete || 0,
+        rejected: counts.rejected || 0,
+        averageReviewDays,
+        oldestPendingDays: daysSince(oldestPendingProfile?.onboardingSubmittedAt),
+      },
+      alerts: {
+        pendingProfiles: counts.pending || 0,
+        oldestPendingProfileDays: daysSince(oldestPendingProfile?.onboardingSubmittedAt),
+        pendingLeaves: pendingLeaveCount,
+        oldestPendingLeaveDays: daysSince(oldestPendingLeave?.createdAt),
+        missingCheckOuts: missingCheckOutCount,
+        missingCheckOutList: missingCheckOuts.slice(0, 5).map((record) => ({
+          id: record._id,
+          name: record.employee?.name || "Employee",
+          date: record.date,
+        })),
+      },
+      departments: [...departmentMap.values()]
+        .sort((left, right) => right.total - left.total || left.name.localeCompare(right.name))
+        .slice(0, 8),
+      activities: activities.slice(0, 6),
+      automation: automationState
+        ? { lastRunAt: automationState.updatedAt, lastProcessedDate: automationState.lastProcessedDate }
+        : null,
+    });
+  } catch (error) {
+    console.error("Admin dashboard failed:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
 
 export const dashboardToday = async (req, res) => {
   try {

@@ -16,6 +16,7 @@ import AttendancePage from "./AttendancePage";
 import HolidayCalendarPage from "./HolidayCalendarPage";
 import LeavePage from "./LeavePage";
 import EmployeeOverview from "./EmployeeOverview";
+import AccountSettings from "./AccountSettings";
 import { useAuth } from "../context/AuthContext";
 
 const tabs = [
@@ -35,7 +36,7 @@ const initials = (name = "") =>
     .join("") || "U";
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -192,7 +193,7 @@ export default function DashboardPage() {
           </>
         )}
         {activeTab === "calendar" && (
-          <div className="-m-4 sm:-m-6 lg:-m-7">
+          <div className="-m-4 min-w-0 sm:-m-6 lg:-my-5 lg:-mx-[27px]">
             <HolidayCalendarPage embedded />
           </div>
         )}
@@ -206,12 +207,13 @@ export default function DashboardPage() {
             <LeavePage />
           </>
         )}
-        {activeTab === "settings" && <AccountSettings user={user} />}
+        {activeTab === "settings" && (
+          <AccountSettings user={user} updateUser={updateUser} onSignOut={signOut} />
+        )}
       </section>
     </main>
   );
 }
-
 function DashboardHeader({
   user,
   title = "Dashboard",
@@ -254,41 +256,5 @@ function DashboardHeader({
         </div>
       </div>
     </header>
-  );
-}
-
-function AccountSettings({ user }) {
-  const details = [
-    ["Full name", user?.name],
-    ["Email address", user?.email],
-    ["Job title", user?.designation],
-    ["Department", user?.department],
-    ["Shift", user?.shift],
-    ["Account status", user?.onboardingStatus],
-  ];
-
-  return (
-    <section>
-      <header className="mb-5">
-        <h1 className="font-['Poppins',sans-serif] text-[24px] font-semibold tracking-[-0.5px] text-slate-900">
-          Account settings
-        </h1>
-        <p className="mt-1 text-[13px] text-slate-500">
-          Your Crew HRCore account details.
-        </p>
-      </header>
-      <div className="rounded-lg border border-[#EDF0F6] bg-white p-5 shadow-[0_6px_18px_rgba(15,23,42,0.04)] sm:p-6">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {details.map(([label, value]) => (
-            <div className="rounded-lg bg-slate-50 p-4" key={label}>
-              <p className="text-[12px] text-slate-500">{label}</p>
-              <p className="mt-1 break-words text-[14px] font-semibold text-slate-800">
-                {value || "Not provided"}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }

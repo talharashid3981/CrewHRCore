@@ -8,10 +8,10 @@ const emptySummary = { total: 0, incomplete: 0, pending: 0, approved: 0, rejecte
 const dateValue = (value) => value ? new Date(value).toISOString().slice(0, 10) : "";
 const buttonIcon = "grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-violet-300 hover:text-violet-700 disabled:cursor-not-allowed disabled:opacity-40";
 
-export default function AdminEmployeesPage({ embedded = false }) {
+export default function AdminEmployeesPage({ embedded = false, initialStatus = "" }) {
   const { user } = useAuth();
   const [summary, setSummary] = useState(emptySummary); const [employees, setEmployees] = useState([]); const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
-  const [status, setStatus] = useState(""); const [search, setSearch] = useState(""); const [page, setPage] = useState(1); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [notice, setNotice] = useState("");
+  const [status, setStatus] = useState(initialStatus); const [search, setSearch] = useState(""); const [page, setPage] = useState(1); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [notice, setNotice] = useState("");
   const [rejecting, setRejecting] = useState(null); const [rejectNote, setRejectNote] = useState(""); const [editing, setEditing] = useState(null); const [saving, setSaving] = useState(false);
 
   
