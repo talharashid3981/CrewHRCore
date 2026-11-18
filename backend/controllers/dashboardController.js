@@ -5,7 +5,7 @@ import userModel from "../models/User.js";
 import { getLeaveBalances, addDays } from "../services/leaveService.js";
 import { buildMonthlyReport, monthRange } from "../services/reportService.js";
 import { getKarachiDateString, isValidCalendarDate } from "../utils/calendar.js";
-import { getResolutionContext, resolveRangeBulk } from "../services/automationService.js";
+import { getResolutionContext, resolveRange, resolveRangeBulk } from "../services/automationService.js";
 
 const employeeFilter = { role: "employee", onboardingStatus: "approved" };
 const calendarMonth = (month) => typeof month === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? { from: `${month}-01`, to: month.endsWith("12") ? `${Number(month.slice(0, 4)) + 1}-01-01` : `${month.slice(0, 4)}-${String(Number(month.slice(5, 7)) + 1).padStart(2, "0")}-01` } : null;
@@ -41,18 +41,47 @@ export const dashboardToday = async (req, res) => {
 export const dashboardCalendar = async (req, res) => {
   const range = calendarMonth(req.query.month);
   if (!range) return res.status(400).json({ success: false, message: "month must be YYYY-MM" });
-  const filter = { status: "approved", from: { $lt: range.to }, to: { $gte: range.from } };
-  if (req.user.role !== "admin") filter.employee = req.user._id;
+  const isAdmin = req.user.role === "admin";
+  const filter = {
+    status: isAdmin ? "approved" : { $in: ["approved", "pending"] },
+    from: { $lt: range.to },
+    to: { $gte: range.from },
+  };
+  if (!isAdmin) filter.employee = req.user._id;
   try {
-    const [holidays, leaves] = await Promise.all([
+    const [holidays, leaves, days] = await Promise.all([
       holidayModel.find({ date: { $gte: range.from, $lt: range.to } }).sort({ date: 1 }).lean(),
       leaveRequestModel.find(filter).populate("employee", "name").populate("leaveType", "name").sort({ from: 1 }).lean(),
+      isAdmin ? Promise.resolve([]) : resolveRange(req.user._id, range.from, addDays(range.to, -1)),
     ]);
     const events = [
       ...holidays.map((holiday) => ({ id: `h-${holiday._id}`, title: holiday.name, start: holiday.date, allDay: true, type: "holiday" })),
-      ...leaves.map((leave) => ({ id: `l-${leave._id}`, title: `${leave.employee?.name || "Employee"} - ${leave.leaveType?.name || "Leave"}`, start: leave.from, end: addDays(leave.to, 1), allDay: true, type: "leave" })),
+      ...leaves.map((leave) => ({
+        id: `l-${leave._id}`,
+        title: isAdmin ? `${leave.employee?.name || "Employee"} - ${leave.leaveType?.name || "Leave"}` : leave.leaveType?.name || "Leave",
+        start: leave.from,
+        end: addDays(leave.to, 1),
+        to: leave.to,
+        days: leave.days,
+        allDay: true,
+        type: "leave",
+        status: leave.status,
+      })),
     ];
-    return res.json({ success: true, month: req.query.month, events });
+    const attendanceDays = days.map(({ date, status, attendance }) => ({
+      date,
+      status,
+      attendance: attendance
+        ? {
+            status: attendance.status,
+            checkIn: attendance.checkIn,
+            checkOut: attendance.checkOut,
+            workedMinutes: attendance.workedMinutes,
+            lateMinutes: attendance.lateMinutes,
+          }
+        : null,
+    }));
+    return res.json({ success: true, month: req.query.month, events, days: attendanceDays });
   } catch (error) { console.error("Dashboard calendar failed:", error); return res.status(500).json({ success: false, message: "Internal server error" }); }
 };
 

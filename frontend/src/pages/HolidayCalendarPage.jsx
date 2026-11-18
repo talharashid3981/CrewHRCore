@@ -8,11 +8,12 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { createHoliday, deleteHoliday, getDashboardCalendar, getOfficeSettings, listHolidays, updateHoliday, updateOfficeSettings } from "../api/auth.api";
 import { useAuth } from "../context/AuthContext";
+import EmployeeCalendarView from "./EmployeeCalendarView";
 
 const defaultOffice = { name: "Main Office", latitude: "", longitude: "", radiusMeters: 100, graceMinutes: 15, weekendDays: [0, 6], isConfigured: false };
 const weekDays = [[0, "Sunday"], [1, "Monday"], [2, "Tuesday"], [3, "Wednesday"], [4, "Thursday"], [5, "Friday"], [6, "Saturday"]];
 
-export default function HolidayCalendarPage({ adminMode = false }) {
+export default function HolidayCalendarPage({ adminMode = false, embedded = false }) {
   const { user } = useAuth();
   const isAdmin = adminMode || user?.role === "admin";
   const [office, setOffice] = useState(defaultOffice);
@@ -28,6 +29,7 @@ export default function HolidayCalendarPage({ adminMode = false }) {
   const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
+    if (!isAdmin) return;
     setLoading(true); setError("");
     try {
       const month = dayjs(range.from).add(7, "day").format("YYYY-MM");
@@ -39,7 +41,7 @@ export default function HolidayCalendarPage({ adminMode = false }) {
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Unable to load calendar settings.");
     } finally { setLoading(false); }
-  }, [range]);
+  }, [isAdmin, range]);
 
   useEffect(() => { const timer = setTimeout(() => { load(); }, 0); return () => clearTimeout(timer); }, [load]);
 
@@ -79,6 +81,8 @@ export default function HolidayCalendarPage({ adminMode = false }) {
     sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }; sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF6A0DAD" } };
     const buffer = await workbook.xlsx.writeBuffer(); const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `crew-hrcore-holidays-${dayjs().format("YYYY-MM-DD")}.xlsx`; anchor.click(); URL.revokeObjectURL(url);
   };
+
+  if (!isAdmin) return <EmployeeCalendarView embedded={embedded} />;
 
   return <main className="min-h-screen bg-slate-50 p-4 text-slate-800 sm:p-8"><div className="mx-auto max-w-7xl"><header className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><Link className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-violet-700 no-underline" to={isAdmin ? "/admin/dashboard" : "/dashboard"}><ChevronLeft size={16} /> Back to workspace</Link><p className="mb-2 text-xs font-bold uppercase tracking-[.18em] text-violet-600">Module 3 · Calendar & settings</p><h1 className="text-3xl font-bold tracking-tight text-slate-950">{isAdmin ? "Office & holidays" : "Office calendar"}</h1><p className="mt-2 text-sm text-slate-500">{isAdmin ? "Configure office rules and manage company holidays." : "View office rules and upcoming company holidays."}</p></div>{!isAdmin && <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><MapPin size={15} className="mr-1 inline text-violet-600" /> {office.name}</div>}</header>{error && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}{notice && <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="status">{notice}</p>}
     <div className="grid gap-5 xl:grid-cols-[.8fr_1.2fr]">{isAdmin && <OfficeForm office={officeForm} updateField={updateField} toggleWeekend={toggleWeekend} saveOffice={saveOffice} saving={saving} />}{!isAdmin && <OfficeSummary office={office} />}

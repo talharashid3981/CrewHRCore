@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Page load / refresh pe session check
+  // Check the current session when the page loads or refreshes.
   useEffect(() => {
     let active = true;
 

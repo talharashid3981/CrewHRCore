@@ -12,6 +12,12 @@ export const addDays = (dateKey, amount) => {
 
 export const compareDates = (left, right) => left.localeCompare(right);
 
+export const isUnlimitedLeaveType = (type) =>
+  Boolean(
+    type.isUnlimited ||
+      type.name?.trim().toLowerCase() === "unpaid leave",
+  );
+
 export const getWorkingDays = async (from, to) => {
   if (!isValidCalendarDate(from) || !isValidCalendarDate(to) || from > to) return { days: 0, dates: [] };
   const settings = await officeSettingsModel.findOne({ key: "default" }).select("weekendDays").lean();
@@ -41,7 +47,18 @@ export const getLeaveBalances = async (employeeId, year) => {
   return types.map((type) => {
     const approved = totalMap.get(`${type._id}:approved`) || 0;
     const pending = totalMap.get(`${type._id}:pending`) || 0;
-    return { leaveType: type._id, name: type.name, yearlyQuota: type.yearlyQuota, approved, pending, remaining: type.yearlyQuota - approved, available: type.yearlyQuota - approved - pending, isActive: type.isActive };
+    const isUnlimited = isUnlimitedLeaveType(type);
+    return {
+      leaveType: type._id,
+      name: type.name,
+      yearlyQuota: isUnlimited ? null : type.yearlyQuota,
+      approved,
+      pending,
+      remaining: isUnlimited ? null : type.yearlyQuota - approved,
+      available: isUnlimited ? null : type.yearlyQuota - approved - pending,
+      isUnlimited,
+      isActive: type.isActive,
+    };
   });
 };
 

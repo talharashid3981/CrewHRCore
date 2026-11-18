@@ -38,6 +38,7 @@ const publicAttendance = (record) => record ? {
   checkIn: record.checkIn,
   checkOut: record.checkOut,
   status: record.status,
+  missingCheckOut: record.missingCheckOut,
   lateMinutes: record.lateMinutes,
   checkInLocation: record.checkInLocation,
   checkOutLocation: record.checkOutLocation,

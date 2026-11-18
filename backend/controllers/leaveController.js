@@ -50,7 +50,7 @@ export const applyLeave = async (req, res) => {
     if (from <= getKarachiDateString() && await attendanceModel.exists({ employee: req.user._id, date: getKarachiDateString() })) return res.status(409).json({ success: false, message: "Today's attendance record has already been created" });
     const balances = await getLeaveBalances(req.user._id, Number(from.slice(0, 4)));
     const balance = balances.find((item) => String(item.leaveType) === String(type._id));
-    if (!balance || balance.available < working.days) return res.status(422).json({ success: false, message: "Insufficient leave balance", available: balance?.available || 0 });
+    if (!balance || (!balance.isUnlimited && balance.available < working.days)) return res.status(422).json({ success: false, message: "Insufficient leave balance", available: balance?.available || 0 });
     const request = await leaveRequestModel.create({ employee: req.user._id, leaveType: type._id, from, to, days: working.days, reason });
     return res.status(201).json({ success: true, message: "Leave request submitted", leave: publicRequest(request) });
   } catch (error) {
@@ -99,7 +99,7 @@ export const approveLeave = async (req, res) => {
     if (!working.days) return res.status(422).json({ success: false, message: "Leave has no working days" });
     const balances = await getLeaveBalances(request.employee._id, Number(request.from.slice(0, 4)));
     const balance = balances.find((item) => String(item.leaveType) === String(request.leaveType._id));
-    if (!balance || balance.remaining < working.days) return res.status(422).json({ success: false, message: "Insufficient leave balance" });
+    if (!balance || (!balance.isUnlimited && balance.remaining < working.days)) return res.status(422).json({ success: false, message: "Insufficient leave balance" });
     const updated = await leaveRequestModel.findOneAndUpdate({ _id: request._id, status: "pending" }, { $set: { status: "approved", days: working.days, reviewedBy: req.user._id, reviewedAt: new Date() } }, { new: true }).populate("employee", "name email").populate("leaveType", "name");
     if (!updated) return res.status(409).json({ success: false, message: "Request already processed" });
     void sendLeaveApprovedEmail(updated.employee, updated).catch((error) => console.error("Leave approval email failed:", error.message));
