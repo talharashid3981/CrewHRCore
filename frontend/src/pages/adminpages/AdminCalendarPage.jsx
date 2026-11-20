@@ -45,6 +45,14 @@ const holidayRangeLabel = (holiday) => {
     ? start.format("ddd · YYYY-MM-DD")
     : `${start.format("ddd, YYYY-MM-DD")} – ${end.format("ddd, YYYY-MM-DD")}`;
 };
+const countHolidayDaysInMonth = (holidays, month) => {
+  let count = 0;
+  for (let day = 1; day <= month.daysInMonth(); day += 1) {
+    const date = keyForDate(month.date(day));
+    if (holidays.some((holiday) => holiday.date <= date && holidayEnd(holiday) >= date)) count += 1;
+  }
+  return count;
+};
 
 export default function AdminCalendarPage() {
   const { user } = useAuth();
@@ -344,10 +352,13 @@ export default function AdminCalendarPage() {
             </button>)}
           </div>
         </div> : <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {Array.from({ length: 12 }, (_, index) => month.startOf("year").add(index, "month")).map((yearMonth) => <button type="button" key={yearMonth.format("YYYY-MM")} onClick={() => { setMonth(yearMonth); setView("month"); }} className={`rounded-xl border p-3 text-left transition hover:border-violet-300 hover:bg-violet-50/40 ${yearMonth.month() === month.month() ? "border-violet-300 bg-violet-50/50" : "border-slate-100 bg-white"}`}>
-            <span className="text-[11px] font-semibold text-slate-800">{yearMonth.format("MMMM")}</span>
-            <span className="mt-2 block text-[9px] text-slate-500">{holidays.filter((holiday) => holiday.date <= yearMonth.endOf("month").format("YYYY-MM-DD") && holidayEnd(holiday) >= yearMonth.startOf("month").format("YYYY-MM-DD")).length} holiday{holidays.filter((holiday) => holiday.date <= yearMonth.endOf("month").format("YYYY-MM-DD") && holidayEnd(holiday) >= yearMonth.startOf("month").format("YYYY-MM-DD")).length === 1 ? "" : "s"}</span>
-          </button>)}
+          {Array.from({ length: 12 }, (_, index) => month.startOf("year").add(index, "month")).map((yearMonth) => {
+            const holidayDays = countHolidayDaysInMonth(holidays, yearMonth);
+            return <button type="button" key={yearMonth.format("YYYY-MM")} onClick={() => { setMonth(yearMonth); setView("month"); }} className={`rounded-xl border p-3 text-left transition hover:border-violet-300 hover:bg-violet-50/40 ${yearMonth.month() === month.month() ? "border-violet-300 bg-violet-50/50" : "border-slate-100 bg-white"}`}>
+              <span className="text-[11px] font-semibold text-slate-800">{yearMonth.format("MMMM")}</span>
+              <span className="mt-2 block text-[9px] text-slate-500">{holidayDays} holiday day{holidayDays === 1 ? "" : "s"}</span>
+            </button>;
+          })}
         </div>}
         {loading && <p className="mt-3 text-[10px] text-slate-400" role="status">Updating calendar…</p>}
       </section>

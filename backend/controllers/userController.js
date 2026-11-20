@@ -7,12 +7,10 @@ import {
   sendOnboardingApprovedEmail,
   sendOnboardingRejectedEmail,
 } from "../utils/emailService.js";
+import officeSettingsModel from "../models/OfficeSettings.js";
+import { shiftSchedulesFrom } from "../utils/shiftSchedules.js";
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
-const shiftTimes = {
-  AM: { shiftStart: "09:00", shiftEnd: "18:00" },
-  PM: { shiftStart: "11:00", shiftEnd: "20:00" },
-};
 
 const profilePicSchema = z.preprocess(
   (value) => (value === "" ? undefined : value),
@@ -364,12 +362,27 @@ export const getUser = async (req, res) => {
   }
 };
 
-const applyAdminFields = (user, fields) => {
-  const editableFields = ["name", "profilePic", "department", "designation", "joiningDate", "shift", "shiftStart", "shiftEnd"];
+const getConfiguredShiftSchedules = async () => {
+  const settings = await officeSettingsModel.findOne({ key: "default" })
+    .select("amShiftStart amShiftEnd pmShiftStart pmShiftEnd")
+    .lean();
+  return shiftSchedulesFrom(settings);
+};
+
+const applyAdminFields = (user, fields, shiftSchedules) => {
+  const editableFields = ["name", "profilePic", "department", "designation", "joiningDate", "shift"];
   for (const field of editableFields) {
     if (fields[field] !== undefined) user[field] = fields[field];
   }
-  if (fields.shift && fields.shiftStart === undefined && fields.shiftEnd === undefined) Object.assign(user, shiftTimes[fields.shift]);
+  if (fields.shiftStart !== undefined) user.shiftStart = fields.shiftStart;
+  if (fields.shiftEnd !== undefined) user.shiftEnd = fields.shiftEnd;
+  if (fields.shift && fields.shiftStart === undefined && fields.shiftEnd === undefined) {
+    Object.assign(user, shiftSchedules[fields.shift]);
+  } else if (fields.shift && fields.shiftStart !== undefined && fields.shiftEnd === undefined) {
+    user.shiftEnd = shiftSchedules[fields.shift].shiftEnd;
+  } else if (fields.shift && fields.shiftEnd !== undefined && fields.shiftStart === undefined) {
+    user.shiftStart = shiftSchedules[fields.shift].shiftStart;
+  }
 };
 
 export const updateUser = async (req, res) => {
@@ -380,11 +393,15 @@ export const updateUser = async (req, res) => {
     }
     const parsed = adminUpdateSchema.safeParse(req.body);
     if (!parsed.success) return validationError(res, parsed);
-    const rangeError = validateShiftRange(parsed.data.shiftStart, parsed.data.shiftEnd);
-    if (rangeError) return res.status(400).json({ success: false, message: rangeError });
     const user = await userModel.findOne({ _id: req.params.id, role: "employee" });
     if (!user) return notFound(res);
-    applyAdminFields(user, parsed.data);
+    const shiftSchedules = parsed.data.shift ? await getConfiguredShiftSchedules() : null;
+    applyAdminFields(user, parsed.data, shiftSchedules);
+    const hasShiftChanges = parsed.data.shift !== undefined
+      || parsed.data.shiftStart !== undefined
+      || parsed.data.shiftEnd !== undefined;
+    const rangeError = hasShiftChanges ? validateShiftRange(user.shiftStart, user.shiftEnd) : null;
+    if (rangeError) return res.status(400).json({ success: false, message: rangeError });
     await user.save();
     return res.status(200).json({ success: true, message: "Employee updated", user: publicUser(user) });
   } catch (error) {
@@ -398,18 +415,18 @@ export const approveUser = async (req, res) => {
     if (!idIsValid(req.params.id)) return notFound(res);
     const parsed = adminUpdateSchema.safeParse(req.body || {});
     if (!parsed.success) return validationError(res, parsed);
-    const rangeError = validateShiftRange(parsed.data.shiftStart, parsed.data.shiftEnd);
-    if (rangeError) return res.status(400).json({ success: false, message: rangeError });
     const user = await userModel.findOne({ _id: req.params.id, role: "employee" });
     if (!user) return notFound(res);
     if (user.onboardingStatus !== "pending") {
       return res.status(409).json({ success: false, message: "Only pending employees can be approved" });
     }
-    applyAdminFields(user, parsed.data);
+    const shiftSchedules = await getConfiguredShiftSchedules();
+    applyAdminFields(user, parsed.data, shiftSchedules);
     if (!user.shift) user.shift = "AM";
-    if (!user.shiftStart || !user.shiftEnd) Object.assign(user, shiftTimes[user.shift]);
-    const rangeAfterDefaults = validateShiftRange(user.shiftStart, user.shiftEnd);
-    if (rangeAfterDefaults) return res.status(400).json({ success: false, message: rangeAfterDefaults });
+    if (!user.shiftStart) user.shiftStart = shiftSchedules[user.shift].shiftStart;
+    if (!user.shiftEnd) user.shiftEnd = shiftSchedules[user.shift].shiftEnd;
+    const rangeError = validateShiftRange(user.shiftStart, user.shiftEnd);
+    if (rangeError) return res.status(400).json({ success: false, message: rangeError });
     user.onboardingStatus = "approved";
     user.rejectionNote = undefined;
     user.approvedAt = new Date();

@@ -20,6 +20,9 @@ export const resetPassword = ({ token, password }) =>
 export const submitOnboarding = (data) =>
   api.post("/users/me/onboarding", data).then((res) => res.data);
 
+export const getOnboardingShiftTimes = () =>
+  api.get("/settings/onboarding-shifts").then((res) => res.data);
+
 export const updateMyProfile = (data) =>
   api.patch("/users/me", data).then((res) => res.data);
 

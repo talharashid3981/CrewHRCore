@@ -225,7 +225,11 @@ export default function EmployeeCalendarView({ embedded = false }) {
         : "No attendance";
   const upcomingEvents = visibleEvents
     .filter((event) => (event.to || event.start) >= today)
-    .sort((left, right) => left.start.localeCompare(right.start))
+    .map((event) => ({
+      ...event,
+      upcomingDate: event.start < today ? today : event.start,
+    }))
+    .sort((left, right) => left.upcomingDate.localeCompare(right.upcomingDate))
     .slice(0, 5);
 
   const changeDate = (amount) => {
@@ -667,7 +671,7 @@ export default function EmployeeCalendarView({ embedded = false }) {
                     <button
                       className="flex w-full items-center gap-2.5 py-2 text-left first:pt-1 last:pb-0"
                       key={event.id}
-                      onClick={() => setSelectedDate(event.start)}
+                      onClick={() => setSelectedDate(event.upcomingDate)}
                       type="button"
                     >
                       <span
@@ -680,10 +684,10 @@ export default function EmployeeCalendarView({ embedded = false }) {
                         }`}
                       >
                         <span className="text-[12px] font-bold leading-3">
-                          {dateAtNoon(event.start).format("D")}
+                          {dateAtNoon(event.upcomingDate).format("D")}
                         </span>
                         <span className="text-[8px] font-semibold uppercase">
-                          {dateAtNoon(event.start).format("MMM")}
+                          {dateAtNoon(event.upcomingDate).format("MMM")}
                         </span>
                       </span>
                       <span className="min-w-0 flex-1">

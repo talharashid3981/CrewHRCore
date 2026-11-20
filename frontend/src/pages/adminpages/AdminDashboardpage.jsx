@@ -160,7 +160,7 @@ export default function AdminDashboardpage() {
         <AdminOverview onDataLoaded={setDashboardData} onNavigate={navigateTo} />
       </> : <>
         {section === "Employees" && <AdminEmployeesPage key={employeeStatus} initialStatus={employeeStatus} embedded />}
-        {section === "Office settings" && <div className="-mx-4 -my-5 sm:-mx-6 sm:-my-7 lg:-mx-8"><Module3SettingsPage embedded /></div>}
+        {section === "Office settings" && <Module3SettingsPage embedded onNavigate={navigateTo} />}
         {section === "Calendar" && <div className="-mx-4 -my-5 sm:-mx-6 sm:-my-7 lg:-mx-7"><AdminCalendarPage /></div>}
         {section === "Attendance" && <AdminAttendanceAutomationPage user={user} pendingCount={pendingTotal} onNavigate={navigateTo} />}
         {section === "Leaves" && <AdminLeavesPage user={user} onNavigate={navigateTo} />}

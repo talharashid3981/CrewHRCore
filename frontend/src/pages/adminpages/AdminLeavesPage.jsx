@@ -830,7 +830,7 @@ function LeavePolicy({ types, policy, setPolicy, office, holidays, saving, onSav
           <p className="mb-1.5 mt-3 text-[10px] text-slate-500">Next public holidays</p>
           <div className="flex flex-wrap gap-1.5">
             {upcomingHolidays.length ? upcomingHolidays.map((holiday) => (
-              <span key={holiday._id || holiday.date} className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-[9px] font-semibold text-amber-700">{formatDate(holiday.date, { day: "numeric", month: "short" })} · {holiday.name}</span>
+              <span key={holiday._id || holiday.date} className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-[9px] font-semibold text-amber-700">{formatDate(holiday.date, { day: "numeric", month: "short" })}{holiday.to && holiday.to !== holiday.date ? `–${formatDate(holiday.to, { day: "numeric", month: "short" })}` : ""} · {holiday.name}</span>
             )) : <span className="text-[10px] text-slate-400">No upcoming holidays scheduled.</span>}
           </div>
           <p className="mt-2 text-[9px] leading-4 text-slate-400">Set in Office settings and Calendar. These days are excluded from leave calculations.</p>

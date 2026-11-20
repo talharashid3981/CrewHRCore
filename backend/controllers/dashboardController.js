@@ -358,7 +358,12 @@ export const dashboardMe = async (req, res) => {
     const [report, balances, holidays, leaves] = await Promise.all([
       buildMonthlyReport([employee], range),
       getLeaveBalances(req.user._id, leaveYear),
-      holidayModel.find({ date: { $gte: date } }).sort({ date: 1 }).limit(3).lean(),
+      holidayModel.find({
+        $or: [
+          { date: { $gte: date } },
+          { date: { $lt: date }, to: { $gte: date } },
+        ],
+      }).sort({ date: 1 }).limit(3).lean(),
       leaveRequestModel.find({ employee: req.user._id, status: "approved", to: { $gte: date } }).populate("leaveType", "name").sort({ from: 1 }).limit(3).lean(),
     ]);
     const [monthly] = report;

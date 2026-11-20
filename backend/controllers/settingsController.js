@@ -4,7 +4,9 @@ import officeSettingsModel from "../models/OfficeSettings.js";
 import holidayModel from "../models/Holiday.js";
 import { getKarachiDateString, isValidCalendarDate } from "../utils/calendar.js";
 import { holidayEnd, holidayRangeQuery, holidayStart } from "../utils/holidayCalendar.js";
+import { shiftSchedulesFrom } from "../utils/shiftSchedules.js";
 
+const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 const weekendDaysSchema = z.array(z.number().int().min(0).max(6)).max(7).refine(
   (days) => new Set(days).size === days.length,
   "Weekend days must be unique",
@@ -16,7 +18,12 @@ const officeUpdateSchema = z.object({
   longitude: z.number().min(-180).max(180).nullable().optional(),
   radiusMeters: z.number().int().min(20).max(1000).optional(),
   graceMinutes: z.number().int().min(0).max(120).optional(),
+  amShiftStart: z.string().regex(timeRegex).optional(),
+  amShiftEnd: z.string().regex(timeRegex).optional(),
+  pmShiftStart: z.string().regex(timeRegex).optional(),
+  pmShiftEnd: z.string().regex(timeRegex).optional(),
   weekendDays: weekendDaysSchema.optional(),
+  revision: z.number().int().nonnegative().optional(),
 }).strict();
 
 const holidaySchema = z.object({
@@ -76,11 +83,16 @@ const findHolidayConflicts = async (from, to, excludeId) => {
 };
 
 const officeResponse = (settings, includeCoordinates) => {
+  const shifts = shiftSchedulesFrom(settings);
   const response = {
     id: settings?._id,
     name: settings?.name || "Main Office",
     radiusMeters: settings?.radiusMeters ?? 100,
     graceMinutes: settings?.graceMinutes ?? 15,
+    amShiftStart: shifts.AM.shiftStart,
+    amShiftEnd: shifts.AM.shiftEnd,
+    pmShiftStart: shifts.PM.shiftStart,
+    pmShiftEnd: shifts.PM.shiftEnd,
     weekendDays: settings?.weekendDays || [0, 6],
     isConfigured: Number.isFinite(settings?.latitude) && Number.isFinite(settings?.longitude),
     updatedAt: settings?.updatedAt,
@@ -88,15 +100,35 @@ const officeResponse = (settings, includeCoordinates) => {
   if (includeCoordinates) {
     response.latitude = settings?.latitude ?? null;
     response.longitude = settings?.longitude ?? null;
+    response.updatedBy = settings?.updatedBy?.name || null;
+    response.revision = settings?.__v ?? 0;
   }
   return response;
 };
 
-const getSettings = async () => officeSettingsModel.findOne({ key: "default" });
+export const getOnboardingShiftTimes = async (req, res) => {
+  if (req.user.role !== "employee") {
+    return res.status(403).json({ success: false, message: "Only employees can access onboarding shift times" });
+  }
+  try {
+    const settings = await officeSettingsModel.findOne({ key: "default" })
+      .select("amShiftStart amShiftEnd pmShiftStart pmShiftEnd")
+      .lean();
+    return res.status(200).json({ success: true, shifts: shiftSchedulesFrom(settings) });
+  } catch (error) {
+    console.error("Get onboarding shift times failed:", error);
+    return res.status(500).json({ success: false, message: "Unable to load current shift times" });
+  }
+};
+
+const getSettings = (includeAudit = false) => {
+  const query = officeSettingsModel.findOne({ key: "default" });
+  return includeAudit ? query.populate("updatedBy", "name") : query;
+};
 
 export const getOfficeSettings = async (req, res) => {
   try {
-    const settings = await getSettings();
+    const settings = await getSettings(req.user.role === "admin");
     return res.status(200).json({
       success: true,
       settings: officeResponse(settings, req.user.role === "admin"),
@@ -111,6 +143,7 @@ export const updateOfficeSettings = async (req, res) => {
   try {
     const parsed = officeUpdateSchema.safeParse(req.body);
     if (!parsed.success) return validationError(res, parsed);
+    const { revision, ...officeFields } = parsed.data;
 
     const coordinatesChanged = hasOwn(parsed.data, "latitude") || hasOwn(parsed.data, "longitude");
     if (coordinatesChanged && (!hasOwn(parsed.data, "latitude") || !hasOwn(parsed.data, "longitude"))) {
@@ -126,10 +159,30 @@ export const updateOfficeSettings = async (req, res) => {
       });
     }
 
-    let settings = await getSettings();
+    let settings = await getSettings(true);
+    if (revision !== undefined && revision !== (settings?.__v ?? 0)) {
+      return res.status(409).json({
+        success: false,
+        message: "Office settings were changed by another administrator. Reload the latest settings before saving.",
+      });
+    }
+    const shifts = shiftSchedulesFrom({
+      amShiftStart: officeFields.amShiftStart ?? settings?.amShiftStart,
+      amShiftEnd: officeFields.amShiftEnd ?? settings?.amShiftEnd,
+      pmShiftStart: officeFields.pmShiftStart ?? settings?.pmShiftStart,
+      pmShiftEnd: officeFields.pmShiftEnd ?? settings?.pmShiftEnd,
+    });
+    if (shifts.AM.shiftStart >= shifts.AM.shiftEnd) {
+      return res.status(400).json({ success: false, message: "AM shift end time must be later than its start time" });
+    }
+    if (shifts.PM.shiftStart >= shifts.PM.shiftEnd) {
+      return res.status(400).json({ success: false, message: "PM shift end time must be later than its start time" });
+    }
     if (!settings) settings = new officeSettingsModel({ key: "default" });
-    Object.assign(settings, parsed.data);
+    Object.assign(settings, officeFields);
+    settings.updatedBy = req.user._id;
     await settings.save();
+    await settings.populate("updatedBy", "name");
 
     return res.status(200).json({
       success: true,
@@ -137,6 +190,18 @@ export const updateOfficeSettings = async (req, res) => {
       settings: officeResponse(settings, true),
     });
   } catch (error) {
+    if (error instanceof mongoose.Error.VersionError) {
+      return res.status(409).json({
+        success: false,
+        message: "Office settings were changed by another administrator. Reload the latest settings before saving.",
+      });
+    }
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Office settings were created by another administrator. Reload the latest settings before saving.",
+      });
+    }
     console.error("Update office settings failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }

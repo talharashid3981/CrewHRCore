@@ -1,4 +1,7 @@
 import mongoose from "mongoose";
+import { defaultShiftSchedules } from "../utils/shiftSchedules.js";
+
+const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const officeSettingsSchema = new mongoose.Schema({
   key: {
@@ -39,6 +42,26 @@ const officeSettingsSchema = new mongoose.Schema({
     max: 120,
     default: 15,
   },
+  amShiftStart: {
+    type: String,
+    match: timeRegex,
+    default: defaultShiftSchedules.AM.shiftStart,
+  },
+  amShiftEnd: {
+    type: String,
+    match: timeRegex,
+    default: defaultShiftSchedules.AM.shiftEnd,
+  },
+  pmShiftStart: {
+    type: String,
+    match: timeRegex,
+    default: defaultShiftSchedules.PM.shiftStart,
+  },
+  pmShiftEnd: {
+    type: String,
+    match: timeRegex,
+    default: defaultShiftSchedules.PM.shiftEnd,
+  },
   weekendDays: {
     type: [Number],
     default: [0, 6],
@@ -47,6 +70,10 @@ const officeSettingsSchema = new mongoose.Schema({
       message: "Weekend days must be unique numbers from 0 to 6",
     },
   },
-}, { timestamps: true });
+  updatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+}, { timestamps: true, optimisticConcurrency: true });
 
 export default mongoose.model("OfficeSettings", officeSettingsSchema);

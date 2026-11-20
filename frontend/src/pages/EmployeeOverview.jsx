@@ -339,6 +339,7 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
         <UpcomingCard
           holidays={data.upcomingHolidays || []}
           leaves={data.upcomingLeaves || []}
+          today={data.date}
           onViewCalendar={() => onNavigate("calendar")}
         />
         <WeekCard
@@ -485,13 +486,15 @@ function LeaveBalanceCard({ balances, pendingCount }) {
   );
 }
 
-function UpcomingCard({ holidays, leaves, onViewCalendar }) {
+function UpcomingCard({ holidays, leaves, today, onViewCalendar }) {
   const items = [
     ...holidays.map((holiday) => ({
       id: holiday._id,
       title: holiday.name,
-      subtitle: "Public holiday",
-      date: holiday.date,
+      subtitle: holiday.to && holiday.to !== holiday.date
+        ? `Public holiday · ${dateLabel(holiday.date, "D MMM")}–${dateLabel(holiday.to, "D MMM")}`
+        : "Public holiday",
+      date: holiday.date < today && (holiday.to || holiday.date) >= today ? today : holiday.date,
       type: "holiday",
     })),
     ...leaves.map((leave) => ({
