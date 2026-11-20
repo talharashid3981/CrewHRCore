@@ -21,6 +21,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { exportMonthlyReport, getEmployeeMonthlyReport, getMonthlyReport } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
+import useToastMessage from "../../hooks/useToastMessage";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -163,6 +164,9 @@ export default function AdminReportsPage() {
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
+  useToastMessage(error, "error");
+  useToastMessage(comparisonError, "warning");
+  useToastMessage(detailError, "error");
   const requestId = useRef(0);
   const detailRequestId = useRef(0);
 
@@ -341,9 +345,6 @@ export default function AdminReportsPage() {
           </div>
         </div>
       </header>
-
-      {error && <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[12px] text-rose-700" role="alert">{error}</p>}
-      {comparisonError && !error && <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] text-amber-800" role="status">{comparisonError}</p>}
 
       <section className="mb-4 grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(340px,1fr)] xl:gap-4">
         <article className="min-w-0 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,.04)] sm:p-5">
@@ -555,7 +556,6 @@ export default function AdminReportsPage() {
               </div>
               <button type="button" onClick={closeDetail} aria-label="Close employee details" className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><X size={16} /></button>
             </header>
-            {detailError && <p className="mx-4 mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] text-rose-700 sm:mx-6" role="alert">{detailError}</p>}
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
               {detailLoading ? <div className="grid min-h-40 place-items-center"><LoaderCircle className="animate-spin text-violet-600" size={22} /></div> : (
                 <>

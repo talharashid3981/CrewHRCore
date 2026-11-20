@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { getOfficeSettings, listEmployees, updateOfficeSettings } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
+import useToastMessage from "../../hooks/useToastMessage";
 
 const defaultOffice = {
   name: "Main Office",
@@ -184,6 +185,9 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
   const [error, setError] = useState("");
   const [shiftError, setShiftError] = useState("");
   const [notice, setNotice] = useState("");
+  useToastMessage(error, "error");
+  useToastMessage(shiftError, "error");
+  useToastMessage(notice, "success");
   const requestId = useRef(0);
 
   const load = useCallback(async () => {
@@ -426,10 +430,6 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
           </div>
         </div>
 
-        {error && <p className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[10px] text-rose-700" role="alert">{error}</p>}
-        {notice && <p className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[10px] text-emerald-700" role="status">{notice}</p>}
-        {shiftError && <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[10px] text-amber-800" role="alert">{shiftError}</p>}
-
         <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,.82fr)_minmax(0,1.18fr)] xl:gap-4">
           <div className="grid min-w-0 content-start gap-3 xl:gap-4">
             <section className="min-w-0 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,.04)] sm:p-5">
@@ -663,9 +663,7 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
                 Saved clock-in and clock-out timestamps are not edited. Attendance and leave results are evaluated using the updated rules.
               </span>
             </div>
-            {saveConflict && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[9px] text-amber-900" role="alert">This draft is based on an older configuration and cannot be saved over a newer change. Reload the latest settings to continue.</p>}
-            {error && <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[9px] text-rose-700" role="alert">{error}</p>}
-            {saveConflict && <button type="button" onClick={() => { setConfirmationOpen(false); void load(); }} className="mt-2 text-[9px] font-semibold text-violet-700 hover:text-violet-900">Discard this draft and reload the latest settings</button>}
+            {saveConflict && <button type="button" onClick={() => { setConfirmationOpen(false); void load(); }} className="mt-2 rounded-lg px-2 py-1 text-[12px] font-semibold text-violet-800 hover:bg-violet-50 hover:text-violet-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600">Discard this draft and reload the latest settings</button>}
 
             <footer className="mt-4 flex flex-col-reverse justify-end gap-2 sm:flex-row">
               <button type="button" onClick={() => setConfirmationOpen(false)} disabled={saving} className="h-9 rounded-xl border border-slate-200 px-4 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">Cancel</button>

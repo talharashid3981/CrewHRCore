@@ -8,6 +8,7 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 import { getAdminDashboard } from "../../api/auth.api";
+import useToastMessage from "../../hooks/useToastMessage";
 
 const numberFormat = new Intl.NumberFormat("en");
 const dateFormat = new Intl.DateTimeFormat("en", {
@@ -34,6 +35,7 @@ export default function AdminOverview({ onDataLoaded, onNavigate }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  useToastMessage(error, "error");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,9 +57,8 @@ export default function AdminOverview({ onDataLoaded, onNavigate }) {
   }, [load]);
 
   if (loading && !data) return <DashboardLoading />;
-  if (!data) return <div className="mt-5 rounded-2xl border border-rose-200 bg-white p-5 text-sm text-rose-700" role="alert">
-    <p>{error || "Dashboard data is unavailable."}</p>
-    <button className="mt-3 rounded-lg bg-violet-700 px-4 py-2 font-semibold text-white hover:bg-violet-800" onClick={load}>Try again</button>
+  if (!data) return <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
+    <button className="rounded-lg bg-violet-700 px-4 py-2 font-semibold text-white hover:bg-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600" onClick={load}>Try again</button>
   </div>;
 
   const attendance = data.attendance;
@@ -108,9 +109,8 @@ export default function AdminOverview({ onDataLoaded, onNavigate }) {
   ];
 
   return <section className="mt-4 min-w-0">
-    {error && <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-700" role="alert">
-      <span>{error} Showing the last successfully loaded data.</span>
-      <button className="font-semibold underline underline-offset-2" onClick={load}>Refresh</button>
+    {error && <div className="mb-3 flex justify-end">
+      <button className="rounded-lg px-3 py-2 text-xs font-semibold text-violet-800 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600" onClick={load}>Refresh data</button>
     </div>}
 
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

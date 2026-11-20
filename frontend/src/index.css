@@ -2,3 +2,33 @@
 
 @source "./pages/DashboardPage.jsx";
 @source "./pages/EmployeeOverview.jsx";
+
+.Toastify__toast {
+  border: 1px solid #e9e5f7;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgb(76 29 149 / 12%);
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  min-height: 56px;
+  padding: 8px 14px;
+}
+
+.Toastify__toast-body {
+  line-height: 1.45;
+}
+
+.Toastify__progress-bar--success {
+  background: #16a34a;
+}
+
+.Toastify__progress-bar--error {
+  background: #dc2626;
+}
+
+.Toastify__progress-bar--warning {
+  background: #d97706;
+}
+
+.Toastify__progress-bar--info {
+  background: #6a0dad;
+}

@@ -18,19 +18,20 @@ import {
 } from "../api/auth.api";
 import TodayAttendanceCard from "../components/TodayAttendanceCard";
 import { submitAttendanceAction } from "./attendanceAction";
+import useToastMessage from "../hooks/useToastMessage";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const zone = "Asia/Karachi";
 const cardClass =
-  "rounded-lg border border-[#EDF0F6] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]";
+  "rounded-lg border border-[#E9E5F7] bg-white shadow-[0_8px_24px_rgba(106,13,173,0.06)]";
 const statusStyles = {
-  present: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  present: "bg-green-50 text-green-700 ring-green-200",
   late: "bg-amber-50 text-amber-700 ring-amber-200",
-  absent: "bg-rose-50 text-rose-700 ring-rose-200",
-  leave: "bg-violet-50 text-violet-700 ring-violet-200",
-  holiday: "bg-sky-50 text-sky-700 ring-sky-200",
+  absent: "bg-red-50 text-red-700 ring-red-200",
+  leave: "bg-violet-50 text-violet-800 ring-violet-200",
+  holiday: "bg-violet-50 text-violet-800 ring-violet-200",
   weekend: "bg-slate-100 text-slate-600 ring-slate-200",
   notEligible: "bg-slate-100 text-slate-600 ring-slate-200",
   pending: "bg-slate-100 text-slate-600 ring-slate-200",
@@ -85,6 +86,10 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
   const [attendanceActionError, setAttendanceActionError] = useState("");
   const [attendanceNotice, setAttendanceNotice] = useState("");
   const [attendanceWorking, setAttendanceWorking] = useState(false);
+  useToastMessage(error, "error");
+  useToastMessage(historyError, "error");
+  useToastMessage(attendanceActionError, "error");
+  useToastMessage(attendanceNotice, "success");
   const [now, setNow] = useState(() => Date.now());
   const currentDate = dayjs(now).tz(zone).format("YYYY-MM-DD");
 
@@ -215,11 +220,8 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
   if (!data) {
     return (
       <div className={`${cardClass} p-5`}>
-        <p className="text-[14px] text-rose-700" role="alert">
-          {error || "Unable to load your dashboard summary."}
-        </p>
         <button
-          className="mt-4 inline-flex items-center gap-2 text-[13px] font-semibold text-violet-700"
+          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold text-violet-800 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
           onClick={() => {
             setLoading(true);
             void loadDashboard();
@@ -269,31 +271,6 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
 
   return (
     <section className="space-y-[18px]">
-      {error && (
-        <p
-          className="rounded-xl bg-rose-50 px-4 py-3 text-[13px] text-rose-700"
-          role="alert"
-        >
-          {error}
-        </p>
-      )}
-      {attendanceActionError && (
-        <p
-          className="rounded-lg bg-rose-50 px-4 py-3 text-[12px] text-rose-700"
-          role="alert"
-        >
-          {attendanceActionError}
-        </p>
-      )}
-      {attendanceNotice && (
-        <p
-          className="rounded-lg bg-emerald-50 px-4 py-3 text-[12px] text-emerald-700"
-          role="status"
-        >
-          {attendanceNotice}
-        </p>
-      )}
-
       <div className="grid min-w-0 gap-4 min-[580px]:grid-cols-[5fr_7fr] lg:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]">
         <TodayAttendanceCard
           dashboard
@@ -316,7 +293,6 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
           working={attendanceWorking}
           reason={
             today?.state?.reason ||
-            attendanceActionError ||
             "Checking attendance availability"
           }
           onAction={handleAttendanceAction}
@@ -351,7 +327,6 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
 
       <RecentAttendanceCard
         data={data}
-        error={historyError}
         loading={historyLoading}
         onViewAll={() => onNavigate("attendance")}
         records={recentRecords}
@@ -364,7 +339,7 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
 function SummaryCard({ label, value, month, icon: Icon, theme, progress }) {
   const iconTheme =
     theme === "emerald"
-      ? "bg-emerald-50 text-emerald-600"
+      ? "bg-green-50 text-green-700"
       : theme === "amber"
         ? "bg-amber-50 text-amber-600"
         : "bg-purple-100 text-violet-700";
@@ -380,10 +355,10 @@ function SummaryCard({ label, value, month, icon: Icon, theme, progress }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="truncate text-[11px] text-slate-500 min-[768px]:text-[12px]">
+          <p className="truncate text-[12px] text-slate-600">
             {label}
           </p>
-          <span className="hidden text-[10px] text-slate-400 min-[768px]:inline">
+          <span className="hidden text-[12px] text-slate-500 min-[768px]:inline">
             {month}
           </span>
         </div>
@@ -393,7 +368,7 @@ function SummaryCard({ label, value, month, icon: Icon, theme, progress }) {
         {progress !== undefined && (
           <div
             aria-label={`Attendance ${progress}%`}
-            className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-purple-100"
+            className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-violet-100"
             role="progressbar"
             aria-valuenow={progress}
             aria-valuemin={0}
@@ -420,7 +395,7 @@ function LeaveBalanceCard({ balances, pendingCount }) {
           Leave balance
         </h2>
         {pendingCount > 0 && (
-          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[12px] font-semibold text-amber-700 ring-1 ring-amber-200">
             {pendingCount} pending
           </span>
         )}
@@ -439,7 +414,7 @@ function LeaveBalanceCard({ balances, pendingCount }) {
 
             return (
               <div key={String(balance.leaveType)}>
-                <div className="flex items-center justify-between gap-2 text-[11px]">
+                <div className="flex items-center justify-between gap-2 text-[12px]">
                   <span className="truncate font-semibold text-slate-700">
                     {balance.name}
                   </span>
@@ -455,7 +430,7 @@ function LeaveBalanceCard({ balances, pendingCount }) {
                       ? `${balance.name}: no fixed limit`
                       : `${balance.name}: ${available} of ${quota} days available`
                   }
-                  className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-purple-100"
+                  className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-violet-100"
                   role={isUnlimited ? "img" : "progressbar"}
                   aria-valuenow={isUnlimited ? undefined : Math.round(percent)}
                   aria-valuemin={isUnlimited ? undefined : 0}
@@ -463,13 +438,13 @@ function LeaveBalanceCard({ balances, pendingCount }) {
                 >
                   {!isUnlimited && (
                     <span
-                      className="block h-full rounded-full bg-gradient-to-r from-violet-700 to-violet-500"
+                      className="block h-full rounded-full bg-gradient-to-r from-violet-700 to-violet-600"
                       style={{ width: `${percent}%` }}
                     />
                   )}
                 </div>
                 {isUnlimited && (
-                  <p className="mt-1 text-[10px] text-slate-500">
+                  <p className="mt-1 text-[12px] text-slate-500">
                     No fixed limit · Needs approval
                   </p>
                 )}
@@ -478,7 +453,7 @@ function LeaveBalanceCard({ balances, pendingCount }) {
           })}
         </div>
       ) : (
-        <p className="mt-4 text-[12px] text-slate-400">
+        <p className="mt-4 text-[13px] text-slate-500">
           No leave balances available.
         </p>
       )}
@@ -516,7 +491,7 @@ function UpcomingCard({ holidays, leaves, today, onViewCalendar }) {
           Upcoming
         </h2>
         <button
-          className="shrink-0 text-[11px] font-semibold text-violet-700 hover:text-violet-900"
+          className="shrink-0 text-[12px] font-semibold text-violet-800 hover:text-violet-950"
           onClick={onViewCalendar}
           type="button"
         >
@@ -529,7 +504,7 @@ function UpcomingCard({ holidays, leaves, today, onViewCalendar }) {
           {items.map((item) => (
             <div className="flex items-center gap-3 py-2 first:pt-0" key={item.id}>
               <span
-                className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg text-center ${
+                className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg text-center ${
                   item.type === "holiday"
                     ? "bg-amber-50 text-amber-700"
                     : "bg-purple-100 text-violet-700"
@@ -539,16 +514,16 @@ function UpcomingCard({ holidays, leaves, today, onViewCalendar }) {
                   <span className="block font-['Poppins',sans-serif] text-[13px] font-semibold leading-none">
                     {dateLabel(item.date, "DD")}
                   </span>
-                  <span className="mt-0.5 block text-[8px] font-semibold uppercase leading-none">
+                  <span className="mt-1 block text-[12px] font-semibold uppercase leading-none">
                     {dateLabel(item.date, "MMM")}
                   </span>
                 </span>
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[11px] font-semibold text-slate-800">
+                <span className="block truncate text-[13px] font-semibold text-slate-800">
                   {item.title}
                 </span>
-                <span className="block truncate text-[10px] text-slate-500">
+                <span className="block truncate text-[12px] text-slate-500">
                   {item.subtitle}
                 </span>
               </span>
@@ -556,7 +531,7 @@ function UpcomingCard({ holidays, leaves, today, onViewCalendar }) {
           ))}
         </div>
       ) : (
-        <p className="mt-4 text-[12px] text-slate-400">
+        <p className="mt-4 text-[13px] text-slate-500">
           Nothing scheduled.
         </p>
       )}
@@ -571,13 +546,13 @@ function WeekCard({ days, today, totalMinutes }) {
         <h2 className="font-['Poppins',sans-serif] text-[14px] font-semibold text-slate-900">
           This week
         </h2>
-        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+        <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[12px] font-semibold text-violet-800 ring-1 ring-violet-200">
           {durationLabel(totalMinutes)}
         </span>
       </div>
 
       <div className="relative mt-5 h-[120px]">
-        <span className="absolute right-0 top-0 z-10 text-[9px] text-slate-400">
+        <span className="absolute right-0 top-0 z-10 text-[12px] text-slate-500">
           8h goal
         </span>
         <div className="absolute inset-x-0 top-[22%] border-t border-dashed border-violet-200" />
@@ -616,7 +591,7 @@ function WeekCard({ days, today, totalMinutes }) {
           })}
         </div>
       </div>
-      <div className="mt-1 grid grid-cols-5 gap-2 text-center text-[9px] text-slate-500">
+      <div className="mt-1 grid grid-cols-5 gap-2 text-center text-[12px] text-slate-500">
         {days.map((day) => (
           <span key={day.date}>{day.label}</span>
         ))}
@@ -625,7 +600,7 @@ function WeekCard({ days, today, totalMinutes }) {
   );
 }
 
-function RecentAttendanceCard({ data, error, loading, onViewAll, records, now }) {
+function RecentAttendanceCard({ data, loading, onViewAll, records, now }) {
   return (
     <section className={`${cardClass} min-w-0 overflow-hidden`}>
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
@@ -633,7 +608,7 @@ function RecentAttendanceCard({ data, error, loading, onViewAll, records, now })
           Recent attendance
         </h2>
         <button
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 hover:text-violet-900"
+          className="inline-flex items-center gap-1 text-[12px] font-semibold text-violet-800 hover:text-violet-950"
           onClick={onViewAll}
           type="button"
         >
@@ -641,24 +616,18 @@ function RecentAttendanceCard({ data, error, loading, onViewAll, records, now })
         </button>
       </div>
 
-      {error && (
-        <p className="mx-4 mb-3 rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700 sm:mx-5" role="alert">
-          {error}
-        </p>
-      )}
-
       {loading ? (
         <div className="grid min-h-28 place-items-center border-t border-slate-100">
           <LoaderCircle className="animate-spin text-violet-700" size={22} />
         </div>
       ) : records.length === 0 ? (
-        <p className="border-t border-slate-100 px-5 py-8 text-center text-[12px] text-slate-400">
+        <p className="border-t border-slate-100 px-5 py-8 text-center text-[12px] text-slate-500">
           No attendance records yet.
         </p>
       ) : (
         <>
           <div className="hidden overflow-x-auto border-t border-slate-100 pb-[11px] md:block">
-            <table className="w-full min-w-[650px] border-collapse text-left text-[11px]">
+            <table className="w-full min-w-[650px] border-collapse text-left text-[12px]">
               <thead className="text-slate-500">
                 <tr>
                   {["Date", "Check in", "Check out", "Worked", "Status"].map(
@@ -741,7 +710,7 @@ function MobileAttendanceRow({ data, record, now }) {
           {dateLabel(record.date, "ddd DD MMM")}
           {today && " · Today"}
         </p>
-        <p className="mt-1 truncate text-[10px] text-slate-500">
+        <p className="mt-1 truncate text-[12px] text-slate-500">
           {timeLabel(record.checkIn)} –{" "}
           {record.checkOut
             ? timeLabel(record.checkOut)
@@ -761,7 +730,7 @@ function StatusBadge({ status }) {
   const normalized = status || "pending";
   return (
     <span
-      className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize ring-1 ${
+      className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold capitalize ring-1 ${
         statusStyles[normalized] || statusStyles.pending
       }`}
     >

@@ -28,6 +28,7 @@ import {
   updateLeaveType,
   getOfficeSettings,
 } from "../../api/auth.api";
+import useToastMessage from "../../hooks/useToastMessage";
 
 const statusStyle = {
   pending: "bg-amber-50 text-amber-700 ring-amber-200",
@@ -97,6 +98,8 @@ export default function AdminLeavesPage({ user }) {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  useToastMessage(error, "error");
+  useToastMessage(message, "success");
   const requestSequence = useRef(0);
 
   const loadRequests = useCallback(async () => {
@@ -341,9 +344,6 @@ export default function AdminLeavesPage({ user }) {
           </div>
         </div>
       </header>
-
-      {error && <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[12px] text-rose-700" role="alert">{error}</p>}
-      {message && <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[12px] text-emerald-700" role="status">{message}</p>}
 
       {tab === "requests" ? (
         <>

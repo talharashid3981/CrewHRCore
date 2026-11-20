@@ -21,6 +21,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import TodayAttendanceCard from "../components/TodayAttendanceCard";
 import { submitAttendanceAction } from "./attendanceAction";
+import useToastMessage from "../hooks/useToastMessage";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -28,14 +29,14 @@ dayjs.extend(timezone);
 const zone = "Asia/Karachi";
 const pageSize = 6;
 const cardClass =
-  "rounded-lg border border-[#EDF0F6] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]";
+  "rounded-lg border border-[#E9E5F7] bg-white shadow-[0_8px_24px_rgba(106,13,173,0.06)]";
 const statusClass = {
-  present: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  present: "bg-green-50 text-green-700 ring-green-200",
   late: "bg-amber-50 text-amber-700 ring-amber-200",
-  leave: "bg-violet-50 text-violet-700 ring-violet-200",
-  absent: "bg-slate-100 text-slate-600 ring-slate-200",
-  holiday: "bg-sky-50 text-sky-700 ring-sky-200",
-  "missing-check-out": "bg-rose-50 text-rose-700 ring-rose-200",
+  leave: "bg-violet-50 text-violet-800 ring-violet-200",
+  absent: "bg-red-50 text-red-700 ring-red-200",
+  holiday: "bg-violet-50 text-violet-800 ring-violet-200",
+  "missing-check-out": "bg-red-50 text-red-700 ring-red-200",
 };
 
 const dateInput = (date) => dayjs(date).tz(zone).format("YYYY-MM-DD");
@@ -69,6 +70,9 @@ export default function AttendancePage({ embedded = false }) {
   const [error, setError] = useState("");
   const [historyError, setHistoryError] = useState("");
   const [notice, setNotice] = useState("");
+  useToastMessage(error, "error");
+  useToastMessage(historyError, "error");
+  useToastMessage(notice, "success");
 
   const loadHistory = useCallback(async () => {
     const requestId = ++historyRequestId.current;
@@ -208,8 +212,6 @@ export default function AttendancePage({ embedded = false }) {
   const distanceMeters = location?.distance;
   const locationVerified =
     Number.isFinite(distanceMeters) && distanceMeters <= radiusMeters;
-  const workingDay = dayjs(now).tz(zone).day();
-  const isWeekend = (office?.weekendDays || [0, 6]).includes(workingDay);
   const locationTitle = locationVerified
     ? "You are inside the office radius"
     : distanceMeters !== undefined
@@ -278,23 +280,6 @@ export default function AttendancePage({ embedded = false }) {
 
   const content = (
     <>
-      {error && (
-        <p
-          className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-[13px] text-red-700"
-          role="alert"
-        >
-          {error}
-        </p>
-      )}
-      {notice && (
-        <p
-          className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700"
-          role="status"
-        >
-          {notice}
-        </p>
-      )}
-
       <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1.25fr)_minmax(280px,.9fr)] xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,1fr)]">
         <TodayAttendanceCard
           attendance={today?.record}
@@ -322,13 +307,13 @@ export default function AttendancePage({ embedded = false }) {
 
         <section className={`${cardClass} min-w-0 p-4 sm:p-5`}>
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-['Poppins',sans-serif] text-[14px] font-semibold text-slate-900">
+            <h2 className="font-['Poppins',sans-serif] text-[15px] font-semibold text-slate-900">
               Location check
             </h2>
             <span
-              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ${
+              className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1 ${
                 locationVerified
-                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                  ? "bg-green-50 text-green-700 ring-green-200"
                   : "bg-slate-50 text-slate-500 ring-slate-200"
               }`}
             >
@@ -339,7 +324,7 @@ export default function AttendancePage({ embedded = false }) {
           <div
             className={`relative mt-3 flex min-h-[72px] items-center gap-3 overflow-hidden rounded-lg border px-3 py-3 ${
               locationVerified
-                ? "border-emerald-200 bg-emerald-50"
+                ? "border-green-200 bg-green-50"
                 : "border-violet-100 bg-violet-50"
             }`}
           >
@@ -352,26 +337,26 @@ export default function AttendancePage({ embedded = false }) {
               <span className="absolute inset-9 rounded-full border border-dashed border-violet-400/45" />
               <span
                 className={`absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-[0_0_0_5px_rgba(124,58,237,0.12)] ${
-                  locationVerified ? "bg-emerald-500" : "bg-violet-500"
+                  locationVerified ? "bg-green-600" : "bg-violet-600"
                 }`}
               />
             </div>
             <span
               className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-sm ${
-                locationVerified ? "bg-emerald-500" : "bg-violet-500"
+                locationVerified ? "bg-green-600" : "bg-violet-600"
               }`}
             >
               {locationVerified ? <Check size={18} /> : <Crosshair size={17} />}
             </span>
             <span className="relative z-10 min-w-0 pr-12">
               <strong
-                className={`block text-[12px] font-semibold ${
-                  locationVerified ? "text-emerald-800" : "text-violet-900"
+                className={`block text-[13px] font-semibold ${
+                  locationVerified ? "text-green-700" : "text-violet-950"
                 }`}
               >
                 {locationTitle}
               </strong>
-              <span className="mt-0.5 block text-[10px] text-slate-600">
+              <span className="mt-0.5 block text-[12px] leading-[1.4] text-slate-600">
                 {distanceMeters !== undefined
                   ? `${Math.round(distanceMeters)} m from the office · ${radiusMeters} m allowed`
                   : office?.isConfigured
@@ -408,27 +393,18 @@ export default function AttendancePage({ embedded = false }) {
                   : "Not recorded",
                 <MapPin size={13} />,
               ],
-              [
-                "Working day",
-                today?.state?.reason === "Today is a holiday"
-                  ? "Holiday"
-                  : isWeekend
-                    ? "Weekend"
-                    : dayjs(now).tz(zone).format("dddd"),
-                <CalendarDays size={13} />,
-              ],
             ].map(([label, value, Icon]) => (
               <div
-                className="flex items-center gap-2 border-b border-slate-100 py-2 last:border-b-0"
+                className="flex items-center gap-2 border-b border-purple-100 py-2 last:border-b-0"
                 key={label}
               >
                 <span className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-purple-100 text-violet-700">
                   {Icon}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[11px] text-slate-500">
+                <span className="min-w-0 flex-1 truncate text-[12px] text-slate-600">
                   {label}
                 </span>
-                <strong className="shrink-0 text-right text-[11px] font-semibold text-slate-700">
+                <strong className="shrink-0 text-right text-[12px] font-semibold text-slate-700">
                   {value}
                 </strong>
               </div>
@@ -447,27 +423,19 @@ export default function AttendancePage({ embedded = false }) {
             <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[auto_minmax(0,1fr)] xl:flex xl:flex-wrap xl:items-center">
               <div
                 aria-label="Attendance period"
-                className="flex min-w-0 max-w-full items-center gap-1 rounded-lg border border-slate-100 bg-slate-50 p-1"
+                className="flex min-w-0 max-w-full items-center gap-1 rounded-lg border border-[#E9E5F7] bg-[#FBFAFF] p-1"
                 role="group"
               >
                 {[
                   ["thisMonth", "This month", setThisMonth],
                   ["lastMonth", "Last month", setLastMonth],
-                  [
-                    "custom",
-                    "Custom",
-                    () => {
-                      setPage(1);
-                      setPreset("custom");
-                    },
-                  ],
                 ].map(([id, label, action]) => (
                   <button
                     aria-pressed={preset === id}
-                    className={`min-w-0 flex-1 whitespace-nowrap rounded-md px-2 py-1.5 text-[10px] font-semibold transition sm:px-2.5 sm:text-[11px] ${
+                    className={`min-w-0 flex-1 whitespace-nowrap rounded-md px-2 py-2 text-[12px] font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 sm:px-2.5 ${
                       preset === id
-                        ? "bg-white text-violet-700 shadow-sm"
-                        : "text-slate-500 hover:text-violet-700"
+                        ? "bg-white text-violet-800 shadow-sm"
+                        : "text-slate-600 hover:text-violet-800"
                     }`}
                     key={id}
                     onClick={action}
@@ -479,23 +447,23 @@ export default function AttendancePage({ embedded = false }) {
               </div>
 
               <div className="grid min-w-0 grid-cols-1 gap-2 min-[480px]:grid-cols-2 sm:col-span-2 xl:col-span-1 xl:flex">
-                <label className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-2 text-slate-500">
+                <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[#E9E5F7] px-2.5 py-2 text-slate-600 transition focus-within:border-violet-600 focus-within:ring-4 focus-within:ring-violet-500/15">
                   <CalendarDays size={14} className="shrink-0 text-violet-600" />
-                  <span className="shrink-0 text-[10px]">From</span>
+                  <span className="shrink-0 text-[12px]">From</span>
                   <input
                     aria-label="From date"
-                    className="w-full min-w-0 bg-transparent text-[11px] text-slate-600 outline-none"
+                    className="w-full min-w-0 bg-transparent text-[16px] text-slate-800 outline-none sm:text-[14px]"
                     type="date"
                     value={from}
                     onChange={(event) => setCustomRange(event.target.value, to)}
                   />
                 </label>
-                <label className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-2 text-slate-500">
+                <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[#E9E5F7] px-2.5 py-2 text-slate-600 transition focus-within:border-violet-600 focus-within:ring-4 focus-within:ring-violet-500/15">
                   <CalendarDays size={14} className="shrink-0 text-violet-600" />
-                  <span className="shrink-0 text-[10px]">To</span>
+                  <span className="shrink-0 text-[12px]">To</span>
                   <input
                     aria-label="To date"
-                    className="w-full min-w-0 bg-transparent text-[11px] text-slate-600 outline-none"
+                    className="w-full min-w-0 bg-transparent text-[16px] text-slate-800 outline-none sm:text-[14px]"
                     type="date"
                     value={to}
                     onChange={(event) => setCustomRange(from, event.target.value)}
@@ -503,7 +471,7 @@ export default function AttendancePage({ embedded = false }) {
                 </label>
               </div>
 
-              <label className="flex h-9 min-w-0 items-center justify-between gap-1.5 rounded-lg border border-slate-200 px-2.5 text-[11px] text-slate-600 sm:col-span-2 xl:col-span-1 xl:w-auto">
+              <label className="flex h-10 min-w-0 items-center justify-between gap-1.5 rounded-lg border border-[#E9E5F7] px-2.5 text-[13px] text-slate-700 transition focus-within:border-violet-600 focus-within:ring-4 focus-within:ring-violet-500/15 sm:col-span-2 xl:col-span-1 xl:w-auto">
                 <span className="sr-only">Filter by attendance status</span>
                 <select
                   aria-label="Filter by attendance status"
@@ -536,14 +504,14 @@ export default function AttendancePage({ embedded = false }) {
                 ["Missing check-out", counts.missingCheckOut, "rose"],
               ].map(([label, count, color]) => (
                 <span
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                  className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${
                     color === "emerald"
-                      ? "bg-emerald-50 text-emerald-700"
+                      ? "bg-green-50 text-green-700"
                       : color === "amber"
                         ? "bg-amber-50 text-amber-700"
                         : color === "violet"
-                          ? "bg-violet-50 text-violet-700"
-                          : "bg-rose-50 text-rose-700"
+                          ? "bg-violet-50 text-violet-800"
+                          : "bg-red-50 text-red-700"
                   }`}
                   key={label}
                 >
@@ -551,7 +519,7 @@ export default function AttendancePage({ embedded = false }) {
                 </span>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[13px] text-slate-600">
               Attendance{" "}
               <strong className="font-semibold text-slate-800">
                 {counts.attendancePercent}%
@@ -561,15 +529,10 @@ export default function AttendancePage({ embedded = false }) {
             </p>
           </div>
 
-          {historyError && (
-            <p className="rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700" role="alert">
-              {historyError}
-            </p>
-          )}
         </div>
 
         <div className="min-w-0 overflow-x-auto overscroll-x-contain border-t border-slate-100">
-          <table className="w-full min-w-[790px] border-collapse text-left text-[11px]">
+          <table className="w-full min-w-[790px] border-collapse text-left text-[12px]">
             <thead className="text-slate-500">
               <tr>
                 {["Date", "Check in", "Check out", "Worked", "Location", "Status"].map(
@@ -585,7 +548,7 @@ export default function AttendancePage({ embedded = false }) {
               {historyLoading ? (
                 <tr>
                   <td
-                    className="px-5 py-8 text-center text-slate-400"
+                    className="px-5 py-8 text-center text-slate-500"
                     colSpan={6}
                   >
                     <RefreshCw className="mr-2 inline animate-spin" size={14} />
@@ -595,7 +558,7 @@ export default function AttendancePage({ embedded = false }) {
               ) : pageRecords.length === 0 ? (
                 <tr>
                   <td
-                    className="px-5 py-8 text-center text-slate-400"
+                    className="px-5 py-8 text-center text-slate-500"
                     colSpan={6}
                   >
                     No attendance records for this period and status.
@@ -656,7 +619,7 @@ export default function AttendancePage({ embedded = false }) {
                       </td>
                       <td className="whitespace-nowrap px-4 py-2">
                         {recordLocation ? (
-                          <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                          <span className="inline-flex items-center gap-1 font-semibold text-green-700">
                             <Check size={13} />
                             Verified · {Math.round(recordLocation.distance)} m
                           </span>
@@ -668,7 +631,7 @@ export default function AttendancePage({ embedded = false }) {
                       </td>
                       <td className="whitespace-nowrap px-4 py-2">
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize ring-1 ${
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-semibold capitalize ring-1 ${
                             statusClass[recordStatus] ||
                             "bg-slate-100 text-slate-600 ring-slate-200"
                           }`}
@@ -684,7 +647,7 @@ export default function AttendancePage({ embedded = false }) {
           </table>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-[10px] text-slate-500 sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-[12px] text-slate-600 sm:px-5">
           <span>
             Showing{" "}
             {filteredHistory.length ? (page - 1) * pageSize + 1 : 0}–
@@ -694,7 +657,7 @@ export default function AttendancePage({ embedded = false }) {
           <div className="flex items-center gap-1">
             <button
               aria-label="Previous page"
-              className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-violet-50 disabled:opacity-40"
+              className="grid h-8 w-8 place-items-center rounded-lg border border-[#E9E5F7] text-slate-600 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:opacity-40"
               disabled={page <= 1 || historyLoading}
               onClick={() => setPage((value) => Math.max(1, value - 1))}
               type="button"
@@ -706,10 +669,10 @@ export default function AttendancePage({ embedded = false }) {
               .map((pageNumber) => (
                 <button
                   aria-current={pageNumber === page ? "page" : undefined}
-                  className={`grid h-7 min-w-7 place-items-center rounded-lg px-2 text-[10px] font-semibold ${
+                  className={`grid h-8 min-w-8 place-items-center rounded-lg px-2 text-[12px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 ${
                     pageNumber === page
                       ? "bg-gradient-to-r from-[#6A0DAD] to-[#7C3AED] text-white"
-                      : "border border-slate-200 text-slate-600 hover:bg-violet-50"
+                      : "border border-[#E9E5F7] text-slate-600 hover:bg-violet-50"
                   }`}
                   key={pageNumber}
                   onClick={() => setPage(pageNumber)}
@@ -720,7 +683,7 @@ export default function AttendancePage({ embedded = false }) {
               ))}
             <button
               aria-label="Next page"
-              className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-violet-50 disabled:opacity-40"
+              className="grid h-8 w-8 place-items-center rounded-lg border border-[#E9E5F7] text-slate-600 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:opacity-40"
               disabled={page >= pageCount || historyLoading}
               onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
               type="button"
@@ -742,27 +705,27 @@ export default function AttendancePage({ embedded = false }) {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] p-4 font-['Inter',sans-serif] text-slate-800 sm:p-6">
+    <main className="min-h-[100dvh] bg-[#F8FAFC] p-4 font-['Inter',sans-serif] text-slate-800 sm:p-6">
       <div className="mx-auto max-w-6xl">
         <header className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <Link
-              className="mb-3 inline-flex items-center gap-2 text-[12px] font-semibold text-violet-700 no-underline"
+              className="mb-3 inline-flex items-center gap-2 text-[13px] font-semibold text-violet-800 no-underline hover:text-violet-950 focus-visible:rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
               to="/dashboard"
             >
               <ChevronLeft size={15} />
               Back to workspace
             </Link>
-            <h1 className="font-['Poppins',sans-serif] text-[24px] font-semibold tracking-[-0.5px] text-slate-900">
+            <h1 className="font-['Poppins',sans-serif] text-[28px] font-semibold leading-[1.2] tracking-[-0.6px] text-slate-900 xl:text-[30px]">
               My attendance
             </h1>
-            <p className="mt-1 text-[12px] text-slate-500">
+            <p className="mt-1 text-[14px] leading-[1.5] text-slate-600 sm:text-[15px]">
               Check in, check out and review your attendance history.
             </p>
           </div>
           <button
             onClick={signOut}
-            className="inline-flex items-center gap-2 self-start text-[12px] font-semibold text-slate-500 hover:text-slate-900"
+            className="inline-flex items-center gap-2 self-start text-[13px] font-medium text-slate-600 transition hover:text-violet-800 focus-visible:rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
             type="button"
           >
             Sign out

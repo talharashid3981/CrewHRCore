@@ -15,6 +15,7 @@ import {
   getOnboardingShiftTimes,
   submitOnboarding,
 } from "../api/auth.api";
+import useToastMessage from "../hooks/useToastMessage";
 
 const inputClass =
   "h-full w-full min-w-0 bg-transparent text-[14px] font-normal text-slate-800 outline-none placeholder:text-slate-500";
@@ -38,6 +39,14 @@ export default function OnboardingPage() {
   const [shiftError, setShiftError] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  useToastMessage(shiftError, "error");
+  useToastMessage(error, "error");
+  useToastMessage(
+    user?.onboardingStatus === "rejected"
+      ? user.rejectionNote || "Your onboarding needs changes. Please update your details and resubmit."
+      : "",
+    "warning",
+  );
 
   const loadShifts = useCallback(async () => {
     setShiftError("");
@@ -135,15 +144,6 @@ export default function OnboardingPage() {
         </button>
       }
     >
-      {user?.onboardingStatus === "rejected" && (
-        <p
-          className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] leading-5 text-rose-700"
-          role="alert"
-        >
-          Admin note: {user.rejectionNote}
-        </p>
-      )}
-
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={submit}>
         <label className={labelClass}>
           Job title
@@ -222,28 +222,15 @@ export default function OnboardingPage() {
         </label>
 
         {shiftError && (
-          <p
-            className="sm:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] leading-5 text-amber-800"
-            role="alert"
-          >
-            <span>{shiftError}</span>
+          <div className="sm:col-span-2 flex justify-end">
             <button
               type="button"
-              className="shrink-0 font-semibold text-violet-800 hover:text-violet-950"
+              className="rounded-lg px-3 py-2 text-[13px] font-semibold text-violet-800 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
               onClick={() => void loadShifts()}
             >
-              Retry
+              Retry loading shift hours
             </button>
-          </p>
-        )}
-
-        {error && (
-          <p
-            className="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] leading-5 text-rose-700"
-            role="alert"
-          >
-            {error}
-          </p>
+          </div>
         )}
 
         <button

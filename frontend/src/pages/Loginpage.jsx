@@ -9,6 +9,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import useToastMessage from "../hooks/useToastMessage";
 
 const highlights = [
   {
@@ -119,6 +120,7 @@ export default function Loginpage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  useToastMessage(error, "error");
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -187,7 +189,6 @@ export default function Loginpage() {
                     autoCapitalize="none"
                     spellCheck={false}
                     aria-invalid={Boolean(error)}
-                    aria-describedby={error ? "login-error" : undefined}
                     required
                   />
                 </LoginInput>
@@ -206,7 +207,6 @@ export default function Loginpage() {
                     placeholder="Enter your password"
                     autoComplete="current-password"
                     aria-invalid={Boolean(error)}
-                    aria-describedby={error ? "login-error" : undefined}
                     required
                   />
                   <button
@@ -237,16 +237,6 @@ export default function Loginpage() {
                   Forgot password?
                 </Link>
               </div>
-
-              {error && (
-                <p
-                  id="login-error"
-                  className="break-words rounded-lg bg-red-50 px-4 py-3 text-[13px] leading-5 text-red-700"
-                  role="alert"
-                >
-                  {error}
-                </p>
-              )}
 
               <button
                 className="mt-1 flex h-11 items-center justify-center gap-3 rounded-lg bg-[linear-gradient(90deg,#6A0DAD_0%,#7C3AED_100%)] px-4 font-['Poppins',sans-serif] text-[15px] font-semibold text-white shadow-[0_14px_28px_rgba(106,13,173,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(106,13,173,0.36)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0 motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:h-10"

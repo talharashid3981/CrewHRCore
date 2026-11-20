@@ -24,6 +24,7 @@ import AdminAttendanceAutomationPage from "./AdminAttendanceAutomationPage";
 import AdminOverview from "./AdminOverview";
 import AdminReportsPage from "./AdminReportsPage";
 import AdminCalendarPage from "./AdminCalendarPage";
+import useToastMessage from "../../hooks/useToastMessage";
 
 const navItems = [
   { section: "Overview", label: "Dashboard", icon: LayoutDashboard },
@@ -42,6 +43,7 @@ export default function AdminDashboardpage() {
   const [dashboardData, setDashboardData] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
+  useToastMessage(exportError, "error");
 
   const signOut = async () => {
     await logout();
@@ -156,7 +158,6 @@ export default function AdminDashboardpage() {
             </div>
           </div>
         </header>
-        {exportError && <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert">{exportError}</p>}
         <AdminOverview onDataLoaded={setDashboardData} onNavigate={navigateTo} />
       </> : <>
         {section === "Employees" && <AdminEmployeesPage key={employeeStatus} initialStatus={employeeStatus} embedded />}

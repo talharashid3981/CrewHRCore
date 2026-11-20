@@ -30,6 +30,7 @@ import {
   updateEmployee,
 } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
+import useToastMessage from "../../hooks/useToastMessage";
 
 const emptySummary = { total: 0, incomplete: 0, pending: 0, approved: 0, rejected: 0, active: 0, inactive: 0 };
 const statusItems = [
@@ -67,6 +68,8 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  useToastMessage(error, "error");
+  useToastMessage(notice, "success");
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editing, setEditing] = useState(null);
   const [reviewing, setReviewing] = useState(null);
@@ -304,9 +307,6 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
         </button>
       </div>
     </header>
-
-    {error && <p className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-700" role="alert">{error}</p>}
-    {notice && <p className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-700" role="status">{notice}</p>}
 
     <section className="mb-3 flex gap-2 overflow-x-auto pb-1" aria-label="Filter by onboarding status">
       {statusItems.map((item) => {

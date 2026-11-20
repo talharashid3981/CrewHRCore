@@ -26,6 +26,7 @@ import {
   getAdminAttendanceDay,
   runAttendanceAutomation,
 } from "../../api/auth.api";
+import useToastMessage from "../../hooks/useToastMessage";
 
 const statusStyles = {
   present: "bg-emerald-50 text-emerald-700 ring-emerald-200",
@@ -55,6 +56,11 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
   const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  useToastMessage(error, "error");
+  useToastMessage(
+    notice,
+    notice.toLowerCase().includes("up to date") ? "info" : "success",
+  );
   const [exporting, setExporting] = useState(false);
   const [runOpen, setRunOpen] = useState(false);
   const [running, setRunning] = useState(false);
@@ -213,9 +219,6 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
         </div>
       </div>
     </header>
-
-    {error && <div role="alert" className="mb-3 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[11px] text-rose-700"><AlertCircle size={15} className="mt-0.5 shrink-0" />{error}</div>}
-    {notice && <div role="status" className="mb-3 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[11px] text-emerald-800"><CheckCircle2 size={15} className="mt-0.5 shrink-0" />{notice}<button type="button" className="ml-auto shrink-0 text-emerald-700" onClick={() => setNotice("")} aria-label="Dismiss message"><X size={14} /></button></div>}
 
     <div className="mb-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,.98fr)]">
       <section className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white px-4 py-3.5 shadow-[0_5px_18px_rgba(15,23,42,.035)] sm:px-5">

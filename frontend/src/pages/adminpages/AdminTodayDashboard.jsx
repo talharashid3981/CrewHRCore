@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CalendarCheck, Clock3, LoaderCircle, Users } from "lucide-react";
 import { getDashboardToday } from "../../api/auth.api";
+import useToastMessage from "../../hooks/useToastMessage";
 
 export default function AdminTodayDashboard() {
   const [data, setData] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  useToastMessage(error, "error");
   const load = useCallback(async () => { try { setError(""); setData(await getDashboardToday()); } catch (requestError) { setError(requestError.response?.data?.message || "Unable to load today's dashboard."); } finally { setLoading(false); } }, []);
   useEffect(() => { const timer = setTimeout(() => { void load(); }, 0); return () => clearTimeout(timer); }, [load]);
   if (loading) return <section className="mt-8 grid min-h-32 place-items-center rounded-2xl border border-slate-200 bg-white shadow-sm"><LoaderCircle className="animate-spin text-violet-700" size={24} /></section>;
-  if (error) return <p className="mt-8 rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700" role="alert">{error}</p>;
+  if (error) return <div className="mt-8 flex justify-end"><button className="rounded-lg px-3 py-2 text-[13px] font-semibold text-violet-800 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600" onClick={() => { setLoading(true); void load(); }} type="button">Try again</button></div>;
   const cards = [["Expected", data.expected, Users], ["Checked in", data.checkedIn, CalendarCheck], ["Late", data.late, Clock3], ["On leave", data.onLeave, AlertTriangle]];
   return <section className="mt-8"><div className="mb-4 flex items-end justify-between gap-3"><div><h2 className="text-[24px] font-semibold text-slate-950">Today at a glance</h2><p className="mt-1 text-[14px] text-slate-500">{data.date} · {data.dayType}{data.holiday ? ` · ${data.holiday.name}` : ""}</p></div><span className="rounded-full bg-violet-50 px-3 py-1 text-[12px] font-medium capitalize text-violet-700">{data.dayType}</span></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value, Icon]) => <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" key={label}><Icon className="text-violet-600" size={21} /><p className="mt-4 text-[14px] font-medium text-slate-500">{label}</p><strong className="mt-1 block text-2xl font-bold text-slate-950">{value}</strong></article>)}</div><div className="mt-4 grid gap-4 sm:grid-cols-3"><MiniList title="Late employees" items={data.lists?.late} suffix={(item) => `${item.lateMinutes} min late`} /><MiniList title="Not checked in" items={data.lists?.notCheckedInYet} /><MiniList title="On leave" items={data.lists?.onLeave} /></div>{data.missingCheckOuts > 0 && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[14px] text-amber-800">{data.missingCheckOuts} missing checkout record{data.missingCheckOuts === 1 ? "" : "s"} found in the previous 7 days.</div>}</section>;
 }

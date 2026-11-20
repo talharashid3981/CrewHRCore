@@ -26,6 +26,7 @@ import {
   updateHoliday,
 } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
+import useToastMessage from "../../hooks/useToastMessage";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -70,6 +71,8 @@ export default function AdminCalendarPage() {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  useToastMessage(error, "error");
+  useToastMessage(notice, "success");
   const requestId = useRef(0);
 
   const monthKey = month.format("YYYY-MM");
@@ -299,9 +302,6 @@ export default function AdminCalendarPage() {
       </div>
     </header>
 
-    {error && <p className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700" role="alert">{error}</p>}
-    {notice && <p className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700" role="status">{notice}</p>}
-
     <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,.95fr)]">
       <section className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white p-4 shadow-[0_5px_18px_rgba(15,23,42,.035)] sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -397,7 +397,6 @@ export default function AdminCalendarPage() {
       form={holidayForm}
       editing={Boolean(editingId)}
       saving={saving}
-      error={error}
       onChange={setHolidayForm}
       onClose={() => { setHolidayForm(null); setEditingId(null); }}
       onSubmit={saveHoliday}
@@ -431,7 +430,7 @@ function HolidayGroup({ title, holidays, saving, onEdit, onDelete, empty }) {
   </div>;
 }
 
-function HolidayDialog({ form, editing, saving, error, onChange, onClose, onSubmit }) {
+function HolidayDialog({ form, editing, saving, onChange, onClose, onSubmit }) {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape" && !saving) onClose();
@@ -456,7 +455,6 @@ function HolidayDialog({ form, editing, saving, error, onChange, onClose, onSubm
         <button type="button" onClick={onClose} disabled={saving} aria-label="Close dialog" className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-50"><X size={15} /></button>
       </header>
       <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-        {error && <p className="mx-4 mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] text-rose-700 sm:mx-6" role="alert">{error}</p>}
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-6">
           <fieldset className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4">
             <legend className="sr-only">Holiday details</legend>

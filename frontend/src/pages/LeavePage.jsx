@@ -26,6 +26,7 @@ import {
   listLeaveTypes,
   previewLeave,
 } from "../api/auth.api";
+import useToastMessage from "../hooks/useToastMessage";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -58,31 +59,31 @@ const currentLeaveYear = (policy) => leaveYearForDate(today(), policy);
 
 const statusStyles = {
   pending: "bg-amber-50 text-amber-700 ring-amber-200",
-  approved: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  rejected: "bg-rose-50 text-rose-700 ring-rose-200",
+  approved: "bg-green-50 text-green-700 ring-green-200",
+  rejected: "bg-red-50 text-red-700 ring-red-200",
   cancelled: "bg-slate-100 text-slate-600 ring-slate-200",
 };
 
 const balanceThemes = [
   {
     icon: Sun,
-    iconClass: "bg-violet-50 text-violet-600",
-    barClass: "from-violet-700 to-violet-500",
+    iconClass: "bg-violet-100 text-violet-800",
+    barClass: "from-[#6A0DAD] to-[#7C3AED]",
   },
   {
     icon: CirclePlus,
-    iconClass: "bg-emerald-50 text-emerald-600",
-    barClass: "from-emerald-600 to-emerald-400",
+    iconClass: "bg-violet-100 text-violet-800",
+    barClass: "from-[#6A0DAD] to-[#7C3AED]",
   },
   {
     icon: Smile,
-    iconClass: "bg-amber-50 text-amber-600",
-    barClass: "from-amber-500 to-amber-400",
+    iconClass: "bg-violet-100 text-violet-800",
+    barClass: "from-[#6A0DAD] to-[#7C3AED]",
   },
   {
     icon: MinusCircle,
-    iconClass: "bg-slate-100 text-slate-500",
-    barClass: "from-slate-400 to-slate-300",
+    iconClass: "bg-violet-100 text-violet-800",
+    barClass: "from-[#6A0DAD] to-[#7C3AED]",
   },
 ];
 
@@ -116,6 +117,9 @@ export default function LeavePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  useToastMessage(message, "success");
+  useToastMessage(error, "error");
+  useToastMessage(previewError, "error");
 
   const activeLeaveYear = currentLeaveYear(policy);
   const historicalYear = selectedYear < activeLeaveYear;
@@ -342,7 +346,7 @@ export default function LeavePage() {
   };
 
   const baseCard =
-    "min-w-0 rounded-lg border border-[#EDF0F6] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]";
+    "min-w-0 rounded-lg border border-[#E9E5F7] bg-white shadow-[0_8px_24px_rgba(106,13,173,0.06)]";
   const statuses = ["all", "pending", "approved", "rejected", "cancelled"];
 
   return (
@@ -351,12 +355,12 @@ export default function LeavePage() {
       className="mx-auto w-full min-w-0 max-w-[1440px] @container/leave font-['Inter',sans-serif] text-slate-800"
     >
       <div className="mb-4 flex justify-end">
-        <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-600 shadow-sm">
+        <label className="flex h-11 items-center gap-2 rounded-lg border border-[#E9E5F7] bg-[#FBFAFF] px-3 text-[13px] font-medium text-slate-600 shadow-sm transition focus-within:border-violet-600 focus-within:ring-4 focus-within:ring-violet-500/15">
           <CalendarDays className="text-violet-600" size={15} />
           <span>Leave year</span>
           <select
             aria-label="Leave year"
-            className="max-w-[108px] bg-transparent font-semibold text-slate-800 outline-none"
+            className="max-w-[108px] bg-transparent text-[14px] font-semibold text-slate-800 outline-none"
             value={selectedYear}
             onChange={(event) => {
               setLoading(true);
@@ -373,23 +377,6 @@ export default function LeavePage() {
           </select>
         </label>
       </div>
-
-      {error && (
-        <p
-          className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-[13px] text-rose-700"
-          role="alert"
-        >
-          {error}
-        </p>
-      )}
-      {message && (
-        <p
-          className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-[13px] text-emerald-700"
-          role="status"
-        >
-          {message}
-        </p>
-      )}
 
       <section
         aria-label={`${selectedYear} leave balances`}
@@ -408,7 +395,7 @@ export default function LeavePage() {
 
           return (
             <article
-              className={`${baseCard} flex min-h-[96px] min-w-0 flex-col justify-between p-3`}
+              className={`${baseCard} flex min-h-[112px] min-w-0 flex-col justify-between p-4`}
               key={balance.leaveType}
             >
               <div className="flex min-w-0 items-center gap-2">
@@ -419,11 +406,11 @@ export default function LeavePage() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 items-center justify-between gap-1">
-                    <p className="truncate text-[10px] font-medium leading-4 text-slate-500">
+                    <p className="truncate text-[13px] font-medium leading-4 text-slate-600">
                       {balance.name}
                     </p>
                     {balance.pending > 0 && (
-                      <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[8px] font-semibold leading-3 text-amber-700 ring-1 ring-amber-200">
+                      <span className="shrink-0 rounded-full bg-amber-50 px-2 py-1 text-[12px] font-semibold leading-4 text-amber-700 ring-1 ring-amber-200">
                         {balance.pending} pending
                       </span>
                     )}
@@ -432,7 +419,7 @@ export default function LeavePage() {
                     <strong className="font-['Poppins',sans-serif] text-[17px] font-semibold leading-5 text-slate-900">
                       {isUnlimited ? used : Math.max(0, balance.available || 0)}
                     </strong>
-                    <span className="truncate text-[9px] leading-4 text-slate-500">
+                    <span className="truncate text-[12px] leading-4 text-slate-500">
                       {isUnlimited ? "days taken" : "days left"}
                     </span>
                   </div>
@@ -440,7 +427,7 @@ export default function LeavePage() {
               </div>
               <div className="mt-2">
                 <div
-                  className="h-1.5 overflow-hidden rounded-full bg-slate-100"
+                  className="h-1.5 overflow-hidden rounded-full bg-violet-100"
                   aria-label={
                     isUnlimited
                       ? `${balance.name}: no fixed limit`
@@ -458,7 +445,7 @@ export default function LeavePage() {
                     />
                   )}
                 </div>
-                <div className="mt-1 flex justify-between gap-2 text-[9px] leading-3 text-slate-500">
+                <div className="mt-1 flex justify-between gap-2 text-[12px] leading-4 text-slate-500">
                   {isUnlimited ? (
                     <>
                       <span>No fixed limit</span>
@@ -476,7 +463,7 @@ export default function LeavePage() {
           );
         })}
         {!loading && balances.length === 0 && (
-          <p className={`${baseCard} p-4 text-[12px] text-slate-500`}>
+          <p className={`${baseCard} p-4 text-[13px] text-slate-500`}>
             No leave balances are available for {selectedYear}.
           </p>
         )}
@@ -485,7 +472,7 @@ export default function LeavePage() {
           Array.from({ length: 4 }, (_, index) => (
             <div
               aria-hidden="true"
-              className={`${baseCard} h-[158px] animate-pulse bg-white p-4`}
+              className={`${baseCard} h-[112px] animate-pulse bg-white p-4`}
               key={index}
             >
               <div className="h-9 w-9 rounded-lg bg-slate-100" />
@@ -496,43 +483,43 @@ export default function LeavePage() {
           ))}
       </section>
 
-      <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4">
+      <div className="grid min-w-0 grid-cols-1 gap-4 @min-[820px]/leave:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <form
           className={`${baseCard} min-w-0 p-4 sm:p-5`}
           onSubmit={submit}
         >
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-violet-50 text-violet-700">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-800">
                 <FileText size={17} />
               </span>
               <div className="min-w-0">
-                <h2 className="font-['Poppins',sans-serif] text-[14px] font-semibold text-slate-900">
+                <h2 className="font-['Poppins',sans-serif] text-[15px] font-semibold text-slate-900">
                   New leave request
                 </h2>
-                <p className="mt-0.5 text-[11px] text-slate-500">
+                <p className="mt-0.5 text-[13px] text-slate-600">
                   Requests are reviewed by an administrator.
                 </p>
               </div>
             </div>
-            <span className="shrink-0 rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-700 ring-1 ring-violet-100">
+            <span className="shrink-0 rounded-full bg-violet-50 px-2.5 py-1 text-[12px] font-semibold text-violet-800 ring-1 ring-violet-200">
               Draft
             </span>
           </div>
 
           {historicalYear && (
-            <p className="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
+            <p className="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-[13px] leading-5 text-slate-600">
               Past leave years are read-only. Select the current or a future
               year to submit a request.
             </p>
           )}
 
           <div className="space-y-3.5">
-            <label className="block min-w-0 text-[12px] font-semibold text-slate-700">
+            <label className="block min-w-0 text-[14px] font-semibold text-slate-700">
               Leave type
               <span className="relative mt-1.5 block">
                 <select
-                  className="h-11 w-full min-w-0 appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-9 text-[13px] font-normal text-slate-800 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                  className="h-11 w-full min-w-0 appearance-none rounded-lg border border-[#E9E5F7] bg-[#FBFAFF] px-3 pr-9 text-[16px] font-normal text-slate-800 outline-none transition focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]"
                   name="leaveType"
                   value={form.leaveType}
                   onChange={update}
@@ -551,7 +538,7 @@ export default function LeavePage() {
                 </select>
                 <ArrowRight
                   aria-hidden="true"
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-400"
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-500"
                   size={15}
                 />
               </span>
@@ -559,16 +546,16 @@ export default function LeavePage() {
 
             <div>
               <div className="mb-1.5 flex items-center justify-between gap-2">
-                <span className="text-[12px] font-semibold text-slate-700">
+                <span className="text-[14px] font-semibold text-slate-700">
                   Date range
                 </span>
                 {previewLoading ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] text-violet-600">
+                  <span className="inline-flex items-center gap-1 text-[12px] text-violet-800">
                     <LoaderCircle className="animate-spin" size={12} />
                     Checking dates
                   </span>
                 ) : (
-                  <span className="text-[10px] text-slate-500">
+                  <span className="text-[12px] text-slate-500">
                     {selectedBalance
                       ? selectedBalance.isUnlimited
                         ? "No fixed limit"
@@ -578,12 +565,12 @@ export default function LeavePage() {
                 )}
               </div>
               <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
-                <label className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-2.5">
+                <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[#E9E5F7] bg-[#FBFAFF] px-2.5 transition focus-within:border-violet-600 focus-within:ring-4 focus-within:ring-violet-500/15">
                   <CalendarDays className="shrink-0 text-violet-600" size={14} />
                   <span className="sr-only">From date</span>
                   <input
                     aria-label="From date"
-                    className="h-10 w-full min-w-0 bg-transparent text-[11px] text-slate-700 outline-none"
+                    className="h-10 w-full min-w-0 bg-transparent text-[16px] text-slate-800 outline-none sm:text-[14px]"
                     name="from"
                     type="date"
                     min={formStartDate}
@@ -594,12 +581,12 @@ export default function LeavePage() {
                     required
                   />
                 </label>
-                <label className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-2.5">
+                <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[#E9E5F7] bg-[#FBFAFF] px-2.5 transition focus-within:border-violet-600 focus-within:ring-4 focus-within:ring-violet-500/15">
                   <CalendarDays className="shrink-0 text-violet-600" size={14} />
                   <span className="sr-only">To date</span>
                   <input
                     aria-label="To date"
-                    className="h-10 w-full min-w-0 bg-transparent text-[11px] text-slate-700 outline-none"
+                    className="h-10 w-full min-w-0 bg-transparent text-[16px] text-slate-800 outline-none sm:text-[14px]"
                     name="to"
                     type="date"
                     min={form.from || formStartDate}
@@ -620,20 +607,20 @@ export default function LeavePage() {
                     <strong className="font-['Poppins',sans-serif] text-[16px] font-semibold text-slate-900">
                       {preview.days}
                     </strong>
-                    <span className="text-[11px] text-slate-600">
+                    <span className="text-[13px] text-slate-600">
                       working {preview.days <= 1 ? "day" : "days"}
                     </span>
                   </div>
                   {selectedBalance?.isUnlimited ? (
-                    <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
+                    <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[12px] font-semibold text-amber-700">
                       Needs approval
                     </span>
                   ) : selectedBalance && (
                     <span
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                      className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${
                         selectedBalance.available >= preview.days
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-rose-50 text-rose-700"
+                          ? "bg-green-50 text-green-700"
+                          : "bg-red-50 text-red-700"
                       }`}
                     >
                       {selectedBalance.available >= preview.days
@@ -649,16 +636,16 @@ export default function LeavePage() {
                         className="rounded-md border border-violet-200 bg-white px-2 py-1 text-center"
                         key={date}
                       >
-                        <span className="block text-[9px] font-semibold uppercase text-violet-600">
+                        <span className="block text-[12px] font-semibold uppercase text-violet-800">
                           {formatDate(date, "ddd")}
                         </span>
-                        <span className="block text-[11px] font-semibold text-slate-800">
+                        <span className="block text-[13px] font-semibold text-slate-800">
                           {formatDate(date, "DD")}
                         </span>
                       </span>
                     ))}
                     {preview.workingDates.length > 7 && (
-                      <span className="self-center text-[10px] text-slate-500">
+                      <span className="self-center text-[12px] text-slate-500">
                         +{preview.workingDates.length - 7} more
                       </span>
                     )}
@@ -666,18 +653,12 @@ export default function LeavePage() {
                 )}
               </div>
             )}
-            {previewError && (
-              <p className="rounded-lg bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
-                {previewError}
-              </p>
-            )}
-
             {policy.allowHalfDay && (
               <div className="grid gap-2 sm:grid-cols-[1fr_1fr]">
-                <label className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-[12px] font-semibold text-slate-700">
+                <label className="flex min-h-10 items-center gap-2 rounded-lg border border-[#E9E5F7] px-3 text-[14px] font-semibold text-slate-700">
                   <input
                     checked={form.duration === "half"}
-                    className="size-4 accent-violet-600"
+                    className="size-4 accent-violet-700"
                     disabled={historicalYear}
                     onChange={(event) => update({
                       target: { name: "duration", value: event.target.checked ? "half" : "full" },
@@ -687,10 +668,10 @@ export default function LeavePage() {
                   Half-day request
                 </label>
                 {form.duration === "half" && (
-                  <label className="relative flex items-center rounded-lg border border-slate-200 px-3">
+                  <label className="relative flex items-center rounded-lg border border-[#E9E5F7] px-3 focus-within:border-violet-600 focus-within:ring-4 focus-within:ring-violet-500/15">
                     <span className="sr-only">Half-day period</span>
                     <select
-                      className="h-10 w-full appearance-none bg-transparent text-[12px] text-slate-700 outline-none"
+                      className="h-10 w-full appearance-none bg-transparent text-[16px] text-slate-800 outline-none sm:text-[14px]"
                       name="halfDayPeriod"
                       value={form.halfDayPeriod}
                       onChange={update}
@@ -701,7 +682,7 @@ export default function LeavePage() {
                     </select>
                     <ArrowRight
                       aria-hidden="true"
-                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-400"
+                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-500"
                       size={14}
                     />
                   </label>
@@ -710,16 +691,16 @@ export default function LeavePage() {
             )}
 
             {selectedType?.minimumNoticeDays > 0 && (
-              <p className="rounded-lg bg-slate-50 px-3 py-2 text-[10px] text-slate-500">
+              <p className="rounded-lg bg-slate-50 px-3 py-2 text-[12px] leading-5 text-slate-600">
                 This leave type requires {selectedType.minimumNoticeDays} days&apos; notice.
               </p>
             )}
 
             {requiresDocument && (
-              <label className="block text-[12px] font-semibold text-slate-700">
-                Supporting document link <span className="text-rose-500">*</span>
+              <label className="block text-[14px] font-semibold text-slate-700">
+                Supporting document link <span className="text-red-700">*</span>
                 <input
-                  className="mt-1.5 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12px] font-normal text-slate-800 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                  className="mt-1.5 h-11 w-full rounded-lg border border-[#E9E5F7] bg-[#FBFAFF] px-3 text-[16px] font-normal text-slate-800 outline-none transition focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]"
                   name="documentReference"
                   type="url"
                   value={form.documentReference}
@@ -731,11 +712,11 @@ export default function LeavePage() {
               </label>
             )}
 
-            <label className="block text-[12px] font-semibold text-slate-700">
-              Reason {!policy.requireReason && <span className="font-normal text-slate-400">(optional)</span>}
+            <label className="block text-[14px] font-semibold text-slate-700">
+              Reason {!policy.requireReason && <span className="font-normal text-slate-500">(optional)</span>}
               <span className="mt-1.5 block">
                 <textarea
-                  className="min-h-[88px] w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-normal text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                  className="min-h-[88px] w-full resize-y rounded-lg border border-[#E9E5F7] bg-[#FBFAFF] px-3 py-2.5 text-[16px] font-normal text-slate-800 outline-none transition placeholder:text-slate-500 focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]"
                   name="reason"
                   value={form.reason}
                   onChange={update}
@@ -746,14 +727,14 @@ export default function LeavePage() {
                   required={policy.requireReason}
                 />
               </span>
-              <span className="mt-1 flex justify-end text-[10px] font-normal text-slate-400">
+              <span className="mt-1 flex justify-end text-[12px] font-normal text-slate-500">
                 {form.reason.length} / 500
               </span>
             </label>
 
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
               <button
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50 sm:min-w-[96px]"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#E9E5F7] px-4 text-[13px] font-semibold text-slate-600 transition hover:bg-[#FBFAFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:opacity-60 sm:h-10 sm:min-w-[96px]"
                 onClick={resetForm}
                 disabled={historicalYear}
                 type="button"
@@ -762,7 +743,7 @@ export default function LeavePage() {
                 Reset
               </button>
               <button
-                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#6A0DAD] to-[#7C3AED] px-4 text-[12px] font-semibold text-white shadow-[0_8px_18px_rgba(106,13,173,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#6A0DAD] to-[#7C3AED] px-4 font-['Poppins',sans-serif] text-[15px] font-semibold text-white shadow-[0_8px_18px_rgba(106,13,173,0.22)] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10"
                 disabled={
                   saving ||
                   loading ||
@@ -787,32 +768,32 @@ export default function LeavePage() {
         <section className={`${baseCard} @container min-w-0 overflow-hidden p-4 sm:p-5`}>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="font-['Poppins',sans-serif] text-[14px] font-semibold text-slate-900">
+              <h2 className="font-['Poppins',sans-serif] text-[15px] font-semibold text-slate-900">
                 Request history
               </h2>
-              <p className="mt-0.5 text-[11px] text-slate-500">
+              <p className="mt-0.5 text-[13px] text-slate-600">
                 {filteredLeaves.length
                   ? `${filteredLeaves.length} request${filteredLeaves.length === 1 ? "" : "s"} in ${selectedYear}`
                   : `Your leave requests for ${selectedYear}`}
               </p>
             </div>
-            <p className="text-[10px] leading-4 text-slate-500">
+            <p className="text-[12px] leading-5 text-slate-500">
               Review notes appear here once a decision is made.
             </p>
           </div>
 
           <div
             aria-label="Filter leave requests"
-            className="mb-3 flex max-w-full gap-1 overflow-x-auto rounded-lg border border-slate-100 bg-slate-50 p-1"
+            className="mb-3 flex max-w-full gap-1 overflow-x-auto rounded-lg border border-[#E9E5F7] bg-[#FBFAFF] p-1"
             role="group"
           >
             {statuses.map((status) => (
               <button
                 aria-pressed={filter === status}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[10px] font-semibold capitalize transition sm:text-[11px] ${
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-[12px] font-semibold capitalize transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 ${
                   filter === status
-                    ? "bg-white text-violet-700 shadow-sm"
-                    : "text-slate-500 hover:text-violet-700"
+                    ? "bg-white text-violet-800 shadow-sm"
+                    : "text-slate-600 hover:text-violet-800"
                 }`}
                 key={status}
                 onClick={() => {
@@ -822,7 +803,7 @@ export default function LeavePage() {
                 type="button"
               >
                 {status === "all" ? "All" : status}
-                <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
+                <span className="rounded-full bg-violet-50 px-1.5 py-0.5 text-[12px] text-violet-800">
                   {statusCounts[status] || 0}
                 </span>
               </button>
@@ -830,14 +811,14 @@ export default function LeavePage() {
           </div>
 
           {loading ? (
-            <div className="grid min-h-48 place-items-center text-[12px] text-slate-400">
+            <div className="grid min-h-48 place-items-center text-[13px] text-slate-500">
               <span className="inline-flex items-center gap-2">
                 <LoaderCircle className="animate-spin text-violet-600" size={16} />
                 Loading requests...
               </span>
             </div>
           ) : filteredLeaves.length === 0 ? (
-            <div className="grid min-h-48 place-items-center text-center text-[12px] text-slate-400">
+            <div className="grid min-h-48 place-items-center text-center text-[13px] text-slate-500">
               <div>
                 <Clock3 className="mx-auto mb-2 text-violet-300" size={26} />
                 <p>No {filter === "all" ? "" : `${filter} `}leave requests found.</p>
@@ -856,7 +837,7 @@ export default function LeavePage() {
               </div>
 
               <div className="hidden min-w-0 overflow-x-auto overscroll-x-contain @md:block">
-                <table className="w-full min-w-[520px] border-collapse text-left text-[11px]">
+                <table className="w-full min-w-[520px] border-collapse text-left text-[12px]">
                   <thead>
                     <tr className="border-b border-slate-100 text-slate-500">
                       {["Leave type", "Dates", "Status", "Review note"].map(
@@ -881,7 +862,7 @@ export default function LeavePage() {
                           <strong className="block font-semibold text-slate-800">
                             {leave.leaveType?.name || "Leave"}
                           </strong>
-                          <span className="mt-0.5 block text-[10px] text-slate-500">
+                          <span className="mt-0.5 block text-[12px] text-slate-500">
                             Submitted {submittedDate(leave.createdAt)}
                           </span>
                         </td>
@@ -891,14 +872,14 @@ export default function LeavePage() {
                               ? formatDate(leave.from, "ddd D MMM")
                               : `${formatDate(leave.from, "D MMM")} – ${formatDate(leave.to, "D MMM")}`}
                           </strong>
-                          <span className="mt-0.5 block text-[10px] text-slate-500">
+                          <span className="mt-0.5 block text-[12px] text-slate-500">
                             {leave.days} working day{leave.days === 1 ? "" : "s"}
                           </span>
                         </td>
                         <td className="px-2.5 py-3 align-top">
                           <StatusBadge status={leave.status} />
                         </td>
-                        <td className="min-w-[145px] px-2.5 py-3 pr-0 align-top text-[10px] leading-4 text-slate-600">
+                        <td className="min-w-[145px] px-2.5 py-3 pr-0 align-top text-[12px] leading-5 text-slate-600">
                           {leave.reviewNote ||
                             (leave.status === "pending"
                               ? "Waiting for review."
@@ -909,7 +890,7 @@ export default function LeavePage() {
                                   : "Reviewed by admin.")}
                           {canCancel(leave) && (
                             <button
-                              className="mt-1 block font-semibold text-rose-600 hover:text-rose-800"
+                              className="mt-1 block font-semibold text-red-700 hover:text-red-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
                               onClick={() => cancel(leave.id)}
                               type="button"
                             >
@@ -923,7 +904,7 @@ export default function LeavePage() {
                 </table>
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[10px] text-slate-500">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[12px] text-slate-600">
                 <span>
                   Showing {(page - 1) * pageSize + 1}–
                   {Math.min(page * pageSize, filteredLeaves.length)} of{" "}
@@ -932,7 +913,7 @@ export default function LeavePage() {
                 <div className="flex items-center gap-1">
                   <button
                     aria-label="Previous page"
-                    className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-violet-50 disabled:opacity-40"
+                    className="grid h-8 w-8 place-items-center rounded-lg border border-[#E9E5F7] text-slate-600 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:opacity-40"
                     disabled={page === 1}
                     onClick={() => setPage((value) => Math.max(1, value - 1))}
                     type="button"
@@ -944,10 +925,10 @@ export default function LeavePage() {
                     .map((pageNumber) => (
                       <button
                         aria-current={pageNumber === page ? "page" : undefined}
-                        className={`grid h-7 min-w-7 place-items-center rounded-lg px-2 text-[10px] font-semibold ${
+                        className={`grid h-8 min-w-8 place-items-center rounded-lg px-2 text-[12px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 ${
                           pageNumber === page
                             ? "bg-gradient-to-r from-[#6A0DAD] to-[#7C3AED] text-white"
-                            : "border border-slate-200 text-slate-600 hover:bg-violet-50"
+                            : "border border-[#E9E5F7] text-slate-600 hover:bg-violet-50"
                         }`}
                         key={pageNumber}
                         onClick={() => setPage(pageNumber)}
@@ -958,7 +939,7 @@ export default function LeavePage() {
                     ))}
                   <button
                     aria-label="Next page"
-                    className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-violet-50 disabled:opacity-40"
+                    className="grid h-8 w-8 place-items-center rounded-lg border border-[#E9E5F7] text-slate-600 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:opacity-40"
                     disabled={page === pageCount}
                     onClick={() =>
                       setPage((value) => Math.min(pageCount, value + 1))
@@ -987,7 +968,7 @@ function canCancel(leave) {
 function StatusBadge({ status }) {
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize ring-1 ${
+      className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-semibold capitalize ring-1 ${
         statusStyles[status] || statusStyles.cancelled
       }`}
     >
@@ -998,19 +979,19 @@ function StatusBadge({ status }) {
 
 function LeaveRequestCard({ leave, onCancel }) {
   return (
-    <article className="min-w-0 rounded-lg border border-slate-100 bg-slate-50/70 p-3">
+    <article className="min-w-0 rounded-lg border border-[#E9E5F7] bg-[#FBFAFF] p-3">
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0">
           <strong className="block truncate text-[12px] font-semibold text-slate-800">
             {leave.leaveType?.name || "Leave"}
           </strong>
-          <span className="mt-0.5 block text-[10px] text-slate-500">
+          <span className="mt-0.5 block text-[12px] text-slate-500">
             Submitted {submittedDate(leave.createdAt)}
           </span>
         </div>
         <StatusBadge status={leave.status} />
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
         <CalendarDays className="text-violet-600" size={13} />
         <span className="font-semibold text-slate-700">
           {leave.from === leave.to
@@ -1022,19 +1003,19 @@ function LeaveRequestCard({ leave, onCancel }) {
         </span>
       </div>
       {leave.reason && (
-        <p className="mt-2 break-words text-[11px] leading-4 text-slate-600">
+        <p className="mt-2 break-words text-[12px] leading-5 text-slate-600">
           {leave.reason}
         </p>
       )}
       {leave.reviewNote && (
-        <p className="mt-2 break-words rounded-md bg-white px-2.5 py-2 text-[10px] leading-4 text-slate-600">
+        <p className="mt-2 break-words rounded-md bg-white px-2.5 py-2 text-[12px] leading-5 text-slate-600">
           <strong className="text-slate-700">Review note: </strong>
           {leave.reviewNote}
         </p>
       )}
       {canCancel(leave) && (
         <button
-          className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800"
+          className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-red-700 hover:text-red-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
           onClick={() => onCancel(leave.id)}
           type="button"
         >

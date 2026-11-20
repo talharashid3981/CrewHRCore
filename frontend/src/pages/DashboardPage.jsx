@@ -48,10 +48,10 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] font-['Inter',sans-serif] text-slate-800 lg:flex">
-      <aside className="relative z-30 border-b border-slate-200 bg-white p-3 sm:px-5 sm:py-3 lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-[212px] lg:flex-col lg:border-b-0 lg:border-r lg:p-4">
+      <aside className="relative z-30 border-b border-[#E9E5F7] bg-white p-3 sm:px-5 sm:py-3 lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-[212px] lg:flex-col lg:border-b-0 lg:border-r lg:p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2 px-1 lg:px-2">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-violet-800 to-violet-500 text-white shadow-[0_6px_14px_rgba(106,13,173,0.28)]">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#4C1D95] via-[#6A0DAD] to-[#7C3AED] text-white shadow-[0_6px_14px_rgba(106,13,173,0.28)]">
               <UsersRound size={20} strokeWidth={2} />
             </span>
             <span className="truncate font-['Poppins',sans-serif] text-[16px] font-semibold tracking-[-0.3px] text-slate-900">
@@ -59,7 +59,7 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-2 lg:hidden">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-purple-700 font-['Poppins',sans-serif] text-[10px] font-semibold text-white sm:hidden">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-purple-800 font-['Poppins',sans-serif] text-[12px] font-semibold text-white sm:hidden">
               {initials(user?.name)}
             </span>
             <span className="hidden max-w-36 truncate text-[12px] font-semibold text-slate-700 sm:inline">
@@ -68,8 +68,10 @@ export default function DashboardPage() {
             <button
               aria-controls="dashboard-navigation"
               aria-expanded={menuOpen}
-              aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
-              className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-800"
+              aria-label={
+                menuOpen ? "Close navigation menu" : "Open navigation menu"
+              }
+              className="grid h-10 w-10 place-items-center rounded-lg border border-[#E9E5F7] bg-white text-slate-700 shadow-sm transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-800"
               onClick={() => setMenuOpen((isOpen) => !isOpen)}
               type="button"
             >
@@ -80,7 +82,7 @@ export default function DashboardPage() {
 
         <nav
           aria-label="Main navigation"
-          className={`${menuOpen ? "grid" : "hidden"} absolute left-0 right-0 top-full z-50 gap-1 border-b border-slate-200 bg-white p-3 shadow-[0_14px_24px_rgba(15,23,42,0.12)] lg:static lg:mt-7 lg:grid lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none`}
+          className={`${menuOpen ? "grid" : "hidden"} absolute left-0 right-0 top-full z-50 gap-1 border-b border-[#E9E5F7] bg-white p-3 shadow-[0_14px_24px_rgba(106,13,173,0.12)] lg:static lg:mt-7 lg:grid lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none`}
           id="dashboard-navigation"
         >
           {tabs.map(({ id, label, icon: Icon }) => (
@@ -126,7 +128,7 @@ export default function DashboardPage() {
               <span className="block truncate text-[12px] font-semibold text-slate-900">
                 {user?.name || "Employee"}
               </span>
-              <span className="block truncate text-[11px] text-slate-500">
+              <span className="block truncate text-[12px] text-slate-500">
                 {user?.role === "admin" ? "Administrator" : "Employee"}
               </span>
             </span>
@@ -143,14 +145,14 @@ export default function DashboardPage() {
         </nav>
 
         <div className="mt-auto hidden items-center gap-3 rounded-lg bg-[#F3E8FF] p-3 lg:flex">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-purple-700 font-['Poppins',sans-serif] text-[12px] font-semibold text-white">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-purple-800 font-['Poppins',sans-serif] text-[12px] font-semibold text-white">
             {initials(user?.name)}
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[12px] font-semibold text-slate-900">
               {user?.name || "Employee"}
             </span>
-            <span className="block truncate text-[11px] text-slate-500">
+            <span className="block truncate text-[12px] text-slate-500">
               {user?.role === "admin"
                 ? "Administrator"
                 : `Employee · ${
@@ -173,7 +175,7 @@ export default function DashboardPage() {
         </div>
       </aside>
 
-      <section className="min-w-0 flex-1 p-4 sm:p-6 lg:ml-[212px] lg:px-[27px] lg:py-5">
+      <section className="min-w-0 flex-1 p-4 sm:p-6 lg:ml-[212px] lg:px-[27px] lg:py-6">
         {activeTab === "dashboard" && (
           <>
             <DashboardHeader user={user} />
@@ -208,7 +210,11 @@ export default function DashboardPage() {
           </>
         )}
         {activeTab === "settings" && (
-          <AccountSettings user={user} updateUser={updateUser} onSignOut={signOut} />
+          <AccountSettings
+            user={user}
+            updateUser={updateUser}
+            onSignOut={signOut}
+          />
         )}
       </section>
     </main>
@@ -228,29 +234,29 @@ function DashboardHeader({
   }).format(new Date());
 
   return (
-    <header className="mb-[9px] flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <header className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
       <div>
-        <h1 className="font-['Poppins',sans-serif] text-[24px] font-semibold leading-[1.15] tracking-[-0.5px] text-slate-900">
+        <h1 className="font-['Poppins',sans-serif] text-[28px] font-semibold leading-[1.2] tracking-[-0.6px] text-slate-900 xl:text-[30px]">
           {title}
         </h1>
-        <p className="mt-0.5 text-[12px] leading-4 text-slate-500">
+        <p className="mt-1 text-[14px] leading-[1.5] text-slate-600 sm:text-[15px]">
           {subtitle || `${todayLabel} · Asia/Karachi`}
         </p>
       </div>
       <div className="flex items-center gap-3 self-start sm:self-auto">
         <span
           aria-label="Notifications"
-          className="relative grid h-9 w-9 place-items-center rounded-lg border border-slate-100 bg-white text-slate-600 shadow-sm"
+          className="relative grid h-10 w-10 place-items-center rounded-lg border border-[#E9E5F7] bg-white text-slate-600 shadow-sm"
           role="img"
         >
           <Bell size={17} />
           <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-violet-500" />
         </span>
-        <div className="flex items-center gap-2 rounded-full border border-slate-100 bg-white py-1 pl-1 pr-3 shadow-sm">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-purple-700 font-['Poppins',sans-serif] text-[10px] font-semibold text-white">
+        <div className="flex items-center gap-2 rounded-full border border-[#E9E5F7] bg-white py-1 pl-1 pr-3 shadow-sm">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-purple-800 font-['Poppins',sans-serif] text-[12px] font-semibold text-white">
             {initials(user?.name)}
           </span>
-          <span className="max-w-28 truncate text-[12px] font-semibold text-slate-700">
+          <span className="max-w-28 truncate text-[13px] font-semibold text-slate-700">
             {user?.name?.split(" ")[0] || "Employee"}
           </span>
         </div>
