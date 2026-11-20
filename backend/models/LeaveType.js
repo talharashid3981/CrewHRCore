@@ -6,6 +6,9 @@ const leaveTypeSchema = new mongoose.Schema({
   yearlyQuota: { type: Number, required: true, min: 0, max: 365, validate: Number.isInteger },
   isUnlimited: { type: Boolean, default: false },
   description: { type: String, trim: true, maxlength: 200 },
+  carryForwardDays: { type: Number, min: 0, max: 365, default: 0, validate: Number.isInteger },
+  documentRequiredAfterDays: { type: Number, min: 0, max: 365, default: null, validate: (value) => value === null || Number.isInteger(value) },
+  minimumNoticeDays: { type: Number, min: 0, max: 365, default: 0, validate: Number.isInteger },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 

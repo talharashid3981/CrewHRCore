@@ -1,10 +1,11 @@
 import { z } from "zod";
 import attendanceModel from "../models/Attendance.js";
+import leaveRequestModel from "../models/LeaveRequest.js";
 import {
   getHolidaySet,
+  getApprovedLeaveOn,
   getOfficeSettings,
   haversineDistanceMeters,
-  hasApprovedLeaveOn,
   isWeekend,
   isValidCalendarDate,
   todayKey,
@@ -32,6 +33,20 @@ const parseTime = (value) => {
   return hours * 60 + minutes;
 };
 
+const isWorkingHalf = (leave, moment, shiftStart, shiftEnd) => {
+  if (leave?.duration !== "half") return true;
+  const midpoint = (shiftStart + shiftEnd) / 2;
+  return leave.halfDayPeriod === "morning"
+    ? moment.totalMinutes >= midpoint
+    : moment.totalMinutes < midpoint;
+};
+
+const leaveInfo = (leave) => leave ? {
+  duration: leave.duration,
+  days: leave.days,
+  halfDayPeriod: leave.halfDayPeriod || null,
+} : null;
+
 const publicAttendance = (record) => record ? {
   id: record._id,
   date: record.date,
@@ -43,6 +58,8 @@ const publicAttendance = (record) => record ? {
   checkInLocation: record.checkInLocation,
   checkOutLocation: record.checkOutLocation,
   workedMinutes: record.workedMinutes,
+  leaveDays: record.leaveDays || 0,
+  leavePeriod: record.leavePeriod,
   createdAt: record.createdAt,
   updatedAt: record.updatedAt,
 } : null;
@@ -108,13 +125,15 @@ const verifyLocation = (location, settings, res) => {
 export const getTodayAttendance = async (req, res) => {
   try {
     const date = todayKey();
-    const [record, settings] = await Promise.all([
+    const [record, settings, approvedLeave] = await Promise.all([
       attendanceModel.findOne({ employee: req.user._id, date }).lean(),
       getOfficeSettings(),
+      getApprovedLeaveOn(req.user._id, date),
     ]);
     const state = { canCheckIn: false, canCheckOut: Boolean(record?.checkIn && !record?.checkOut), reason: null };
     if (record?.checkOut) state.reason = "Today's attendance is complete";
     else if (record) state.reason = "You have already checked in today";
+    else if (approvedLeave && approvedLeave.duration !== "half") state.reason = "You are on approved leave today";
     else if (!settings || !Number.isFinite(settings.latitude) || !Number.isFinite(settings.longitude)) state.reason = "Office location is not set by admin";
     else {
       const holidaySet = await getHolidaySet([date]);
@@ -125,12 +144,17 @@ export const getTodayAttendance = async (req, res) => {
         const moment = toKarachiMoment();
         const shiftStart = parseTime(req.user.shiftStart);
         const shiftEnd = parseTime(req.user.shiftEnd);
-        if (moment.totalMinutes < shiftStart - 120) state.reason = "Check-in is not available yet";
+        if (!isWorkingHalf(approvedLeave, moment, shiftStart, shiftEnd)) {
+          state.reason = `Your approved ${approvedLeave.halfDayPeriod} half-day leave is active`;
+        } else if (moment.totalMinutes < shiftStart - 120) state.reason = "Check-in is not available yet";
         else if (moment.totalMinutes > shiftEnd) state.reason = "The shift has ended";
         else state.canCheckIn = true;
       }
     }
-    return res.status(200).json({ success: true, date, record: publicAttendance(record), state });
+    const attendance = approvedLeave?.duration === "half" && record
+      ? { ...record, leaveDays: 0.5, leavePeriod: approvedLeave.halfDayPeriod }
+      : record;
+    return res.status(200).json({ success: true, date, record: publicAttendance(attendance), leave: leaveInfo(approvedLeave), state });
   } catch (error) {
     console.error("Get today attendance failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
@@ -146,10 +170,16 @@ export const checkIn = async (req, res) => {
     if (!ensureConfiguredOffice(settings, res)) return;
     const moment = toKarachiMoment();
     if (!(await checkCalendar(moment.dateKey, settings, res))) return;
-    if (await hasApprovedLeaveOn(req.user._id, moment.dateKey)) {
+    const approvedLeave = await getApprovedLeaveOn(req.user._id, moment.dateKey);
+    if (approvedLeave && approvedLeave.duration !== "half") {
       return res.status(409).json({ success: false, message: "You are on leave today" });
     }
     if (!checkShiftWindow(req.user, moment, res)) return;
+    const shiftStart = parseTime(req.user.shiftStart);
+    const shiftEnd = parseTime(req.user.shiftEnd);
+    if (!isWorkingHalf(approvedLeave, moment, shiftStart, shiftEnd)) {
+      return res.status(409).json({ success: false, message: `Check-in is not available during your approved ${approvedLeave.halfDayPeriod} half-day leave` });
+    }
 
     const existing = await attendanceModel.findOne({ employee: req.user._id, date: moment.dateKey });
     if (existing) {
@@ -158,16 +188,20 @@ export const checkIn = async (req, res) => {
 
     const distance = verifyLocation(parsed.data, settings, res);
     if (distance === null) return;
-    const shiftStart = parseTime(req.user.shiftStart);
+    const effectiveShiftStart = approvedLeave?.duration === "half" && approvedLeave.halfDayPeriod === "morning"
+      ? (shiftStart + shiftEnd) / 2
+      : shiftStart;
     const graceMinutes = settings.graceMinutes ?? 15;
     const minuteOfDay = Math.floor(moment.totalMinutes);
-    const isLate = minuteOfDay > shiftStart + graceMinutes;
+    const isLate = minuteOfDay > effectiveShiftStart + graceMinutes;
     const record = await attendanceModel.create({
       employee: req.user._id,
       date: moment.dateKey,
       checkIn: new Date(),
       status: isLate ? "late" : "present",
-      lateMinutes: isLate ? Math.max(0, minuteOfDay - shiftStart) : 0,
+      lateMinutes: isLate ? Math.max(0, minuteOfDay - effectiveShiftStart) : 0,
+      leaveDays: approvedLeave?.duration === "half" ? 0.5 : 0,
+      ...(approvedLeave?.duration === "half" ? { leavePeriod: approvedLeave.halfDayPeriod } : {}),
       checkInLocation: { ...parsed.data, distance: Math.round(distance * 100) / 100 },
     });
 
@@ -193,9 +227,20 @@ export const checkOut = async (req, res) => {
     const distance = verifyLocation(parsed.data, settings, res);
     if (distance === null) return;
     const checkoutTime = new Date();
+    const approvedLeave = await getApprovedLeaveOn(req.user._id, date);
+    const shiftStart = req.user.shiftStart ? parseTime(req.user.shiftStart) : null;
+    const shiftEnd = req.user.shiftEnd ? parseTime(req.user.shiftEnd) : null;
+    const leaveMidpoint = shiftStart !== null && shiftEnd !== null ? (shiftStart + shiftEnd) / 2 : null;
+    const actualWorkedMinutes = Math.floor((checkoutTime.getTime() - record.checkIn.getTime()) / 60000);
     record.checkOut = checkoutTime;
     record.checkOutLocation = { ...parsed.data, distance: Math.round(distance * 100) / 100 };
-    record.workedMinutes = Math.max(0, Math.floor((checkoutTime.getTime() - record.checkIn.getTime()) / 60000));
+    record.workedMinutes = approvedLeave?.duration === "half" && approvedLeave.halfDayPeriod === "afternoon" && leaveMidpoint !== null
+      ? Math.max(0, Math.min(actualWorkedMinutes, Math.floor(leaveMidpoint - toKarachiMoment(record.checkIn).totalMinutes)))
+      : Math.max(0, actualWorkedMinutes);
+    if (approvedLeave?.duration === "half") {
+      record.leaveDays = 0.5;
+      record.leavePeriod = approvedLeave.halfDayPeriod;
+    }
     await record.save();
 
     return res.status(200).json({ success: true, message: "Check-out successful", attendance: publicAttendance(record) });
@@ -219,7 +264,30 @@ export const getAttendanceHistory = async (req, res) => {
       if (parsed.data.to) filter.date.$lte = parsed.data.to;
     }
     const records = await attendanceModel.find(filter).sort({ date: -1 }).limit(100).lean();
-    return res.status(200).json({ success: true, attendance: records.map(publicAttendance) });
+    const dates = records.map((record) => record.date);
+    const halfDayLeaves = dates.length ? await leaveRequestModel.find({
+      employee: req.user._id,
+      status: "approved",
+      duration: "half",
+      from: { $in: dates },
+      to: { $in: dates },
+    }).select("from halfDayPeriod").lean() : [];
+    const leaveByDate = new Map(halfDayLeaves.map((leave) => [leave.from, leave]));
+    return res.status(200).json({
+      success: true,
+      attendance: records.map((record) => {
+        const leave = leaveByDate.get(record.date);
+        const halfDayRecord = leave
+          ? {
+            ...record,
+            ...(record.status === "leave" && !record.checkIn ? { status: "absent" } : {}),
+            leaveDays: 0.5,
+            leavePeriod: leave.halfDayPeriod,
+          }
+          : record;
+        return publicAttendance(halfDayRecord);
+      }),
+    });
   } catch (error) {
     console.error("Get attendance history failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });

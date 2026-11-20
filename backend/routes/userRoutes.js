@@ -2,7 +2,7 @@ import express from "express";
 import { protect, authorize } from "../middleware/auth.js";
 import {
   submitOnboarding, updateMyProfile, changeMyPassword,
-  getSummary, listUsers, getUser, updateUser,
+  getSummary, listUsers, exportUsers, inviteEmployee, remindEmployee, getUser, updateUser,
   approveUser, rejectUser, setUserStatus,
 } from "../controllers/userController.js";
 
@@ -18,7 +18,10 @@ router.patch("/me/password", changeMyPassword);
 // Admin only
 router.use(authorize("admin"));
 router.get("/summary", getSummary);
+router.get("/export", exportUsers);
+router.post("/invite", inviteEmployee);
 router.get("/", listUsers);
+router.post("/:id/remind", remindEmployee);
 router.get("/:id", getUser);
 router.patch("/:id", updateUser);
 router.patch("/:id/approve", approveUser);

@@ -34,6 +34,8 @@ const attendanceSchema = new mongoose.Schema({
   },
   missingCheckOut: { type: Boolean, default: false },
   lateMinutes: { type: Number, min: 0, default: 0 },
+  leaveDays: { type: Number, min: 0, max: 1, default: 0 },
+  leavePeriod: { type: String, enum: ["morning", "afternoon"] },
   checkInLocation: { type: locationSchema },
   checkOutLocation: { type: locationSchema },
   workedMinutes: { type: Number, min: 0 },

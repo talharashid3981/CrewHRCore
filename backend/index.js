@@ -57,8 +57,9 @@ app.use((req, res) => {
 app.use((error, req, res, next) => {
   console.error("Unhandled request error:", error);
   if (res.headersSent) return next(error);
-  res.status(500).json({ success: false, message: "Internal server error" });
+  res.status(500).json({success: false, message: "Internal server error" });
 });
+
 
 const PORT = process.env.PORT || 8000;
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import officeSettingsModel from "../models/OfficeSettings.js";
 import holidayModel from "../models/Holiday.js";
 import { getKarachiDateString, isValidCalendarDate } from "../utils/calendar.js";
+import { holidayEnd, holidayRangeQuery, holidayStart } from "../utils/holidayCalendar.js";
 
 const weekendDaysSchema = z.array(z.number().int().min(0).max(6)).max(7).refine(
   (days) => new Set(days).size === days.length,
@@ -20,10 +21,11 @@ const officeUpdateSchema = z.object({
 
 const holidaySchema = z.object({
   name: z.string().trim().min(1, "Holiday name is required").max(150),
-  date: z.string().refine(isValidCalendarDate, "Date must be a valid YYYY-MM-DD date"),
+  date: z.string().refine(isValidCalendarDate, "Date must be a valid YYYY-MM-DD date").optional(),
+  from: z.string().refine(isValidCalendarDate, "From date must be a valid YYYY-MM-DD date").optional(),
+  to: z.string().refine(isValidCalendarDate, "To date must be a valid YYYY-MM-DD date").optional(),
   description: z.string().trim().max(500).optional(),
 }).strict();
-
 const holidayUpdateSchema = holidaySchema.partial().strict();
 
 const validationError = (res, parsed) => res.status(400).json({
@@ -37,6 +39,40 @@ const notFound = (res, message = "Holiday not found") => res.status(404).json({
 });
 
 const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+const normalizedHoliday = (holiday) => {
+  const date = holiday.from || holiday.date;
+  const result = { name: holiday.name, date };
+  const to = holiday.to || date;
+  if (to !== date) result.to = to;
+  if (holiday.description !== undefined) result.description = holiday.description;
+  return result;
+};
+const holidayRangeError = (from, to) => {
+  if (!from) return "Holiday start date is required";
+  if (!isValidCalendarDate(from) || !isValidCalendarDate(to)) return "Holiday dates must be valid YYYY-MM-DD dates";
+  if (from > to) return "To date cannot be before from date";
+  if ((new Date(`${to}T00:00:00Z`) - new Date(`${from}T00:00:00Z`)) / 86400000 > 365) {
+    return "A holiday range cannot exceed 366 days";
+  }
+  return null;
+};
+const findHolidayConflicts = async (from, to, excludeId) => {
+  const conflicts = await holidayModel.find({
+    ...holidayRangeQuery(from, to),
+    ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+  }).select("date to name").lean();
+  const overlappingDates = new Set();
+  for (const holiday of conflicts) {
+    const start = holidayStart(holiday) < from ? from : holidayStart(holiday);
+    const end = holidayEnd(holiday) > to ? to : holidayEnd(holiday);
+    for (let date = start; date <= end;) {
+      overlappingDates.add(date);
+      const [year, month, day] = date.split("-").map(Number);
+      date = new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
+    }
+  }
+  return [...overlappingDates].sort();
+};
 
 const officeResponse = (settings, includeCoordinates) => {
   const response = {
@@ -116,9 +152,7 @@ export const listHolidays = async (req, res) => {
       return res.status(400).json({ success: false, message: "from cannot be later than to" });
     }
 
-    const filter = { date: { $gte: from } };
-    if (to) filter.date.$lte = to;
-    const holidays = await holidayModel.find(filter).sort({ date: 1 });
+    const holidays = await holidayModel.find(holidayRangeQuery(from, to || "2200-12-31")).sort({ date: 1 });
     return res.status(200).json({ success: true, holidays });
   } catch (error) {
     console.error("List holidays failed:", error);
@@ -130,10 +164,21 @@ export const createHoliday = async (req, res) => {
   try {
     const parsed = holidaySchema.safeParse(req.body);
     if (!parsed.success) return validationError(res, parsed);
-    const holiday = await holidayModel.create(parsed.data);
-    return res.status(201).json({ success: true, message: "Holiday added", holiday });
+    const holidayData = normalizedHoliday(parsed.data);
+    const rangeError = holidayRangeError(holidayData.date, holidayData.to || holidayData.date);
+    if (rangeError) return res.status(400).json({ success: false, message: rangeError });
+    const conflicts = await findHolidayConflicts(holidayData.date, holidayData.to || holidayData.date);
+    if (conflicts.length) {
+      return res.status(409).json({
+        success: false,
+        message: "This range overlaps with holidays already on the calendar",
+        conflictingDates: conflicts,
+      });
+    }
+    const holiday = await holidayModel.create(holidayData);
+    return res.status(201).json({ success: true, message: "Holiday added to the calendar", holiday });
   } catch (error) {
-    if (error?.code === 11000) return res.status(409).json({ success: false, message: "A holiday already exists on this date" });
+    if (error?.code === 11000) return res.status(409).json({ success: false, message: "This holiday start date already exists on the calendar" });
     console.error("Create holiday failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
@@ -146,7 +191,27 @@ export const updateHoliday = async (req, res) => {
     if (!parsed.success) return validationError(res, parsed);
     const holiday = await holidayModel.findById(req.params.id);
     if (!holiday) return notFound(res);
-    Object.assign(holiday, parsed.data);
+    const normalized = normalizedHoliday({
+      name: parsed.data.name ?? holiday.name,
+      date: parsed.data.date ?? holiday.date,
+      from: parsed.data.from,
+      to: parsed.data.to ?? holiday.to,
+      description: parsed.data.description ?? holiday.description,
+    });
+    const rangeError = holidayRangeError(normalized.date, normalized.to || normalized.date);
+    if (rangeError) return res.status(400).json({ success: false, message: rangeError });
+    const conflicts = await findHolidayConflicts(normalized.date, normalized.to || normalized.date, holiday._id);
+    if (conflicts.length) {
+      return res.status(409).json({
+        success: false,
+        message: "This range overlaps with other holidays on the calendar",
+        conflictingDates: conflicts,
+      });
+    }
+    holiday.name = normalized.name;
+    holiday.date = normalized.date;
+    holiday.to = normalized.to;
+    holiday.description = normalized.description;
     await holiday.save();
     return res.status(200).json({ success: true, message: "Holiday updated", holiday });
   } catch (error) {

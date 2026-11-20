@@ -48,6 +48,18 @@ export const sendWelcomeEmail = (user) => sendEmail({
   `,
 });
 
+export const sendEmployeeInviteEmail = (user, setupUrl) => sendEmail({
+  to: user.email,
+  subject: "You’re invited to Crew HRCore",
+  htmlContent: `
+    <h2>Welcome, ${escapeHtml(user.name)}!</h2>
+    <p>An administrator invited you to join Crew HRCore.</p>
+    <p>Use the secure link below to set your password and complete your employee profile. This link expires in 24 hours.</p>
+    <p><a href="${escapeHtml(setupUrl)}">Set up your account</a></p>
+    <p>If you were not expecting this invitation, you can ignore this email.</p>
+  `,
+});
+
 export const sendPasswordResetEmail = (user, resetUrl) => sendEmail({
   to: user.email,
   subject: "Reset your Crew HRCore password",

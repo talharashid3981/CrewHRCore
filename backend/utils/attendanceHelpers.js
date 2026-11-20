@@ -2,6 +2,7 @@ import officeSettingsModel from "../models/OfficeSettings.js";
 import holidayModel from "../models/Holiday.js";
 import { isValidCalendarDate } from "./calendar.js";
 import leaveRequestModel from "../models/LeaveRequest.js";
+import { expandHolidayDates, holidayRangeQuery } from "./holidayCalendar.js";
 
 const partsForKarachi = (date) => new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Karachi",
@@ -40,9 +41,15 @@ export const isWeekend = (dateKey, weekendDays = [0, 6]) => {
 export const getOfficeSettings = () => officeSettingsModel.findOne({ key: "default" });
 
 export const getHolidaySet = async (dateKeys = []) => {
-  const filter = dateKeys.length ? { date: { $in: dateKeys } } : {};
-  const holidays = await holidayModel.find(filter).select("date").lean();
-  return new Set(holidays.map((holiday) => holiday.date));
+  if (!dateKeys.length) {
+    const holidays = await holidayModel.find({}).select("date").lean();
+    return new Set(holidays.map((holiday) => holiday.date));
+  }
+  const from = [...dateKeys].sort()[0];
+  const to = [...dateKeys].sort().at(-1);
+  const holidays = await holidayModel.find(holidayRangeQuery(from, to)).select("date to").lean();
+  const expanded = expandHolidayDates(holidays, from, to);
+  return new Set(dateKeys.filter((date) => expanded.has(date)));
 };
 
 export const haversineDistanceMeters = (lat1, lng1, lat2, lng2) => {
@@ -55,9 +62,14 @@ export const haversineDistanceMeters = (lat1, lng1, lat2, lng2) => {
   return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-export const hasApprovedLeaveOn = async (employeeId, dateKey) => Boolean(await leaveRequestModel.exists({
+export const getApprovedLeaveOn = (employeeId, dateKey) => leaveRequestModel.findOne({
   employee: employeeId,
   status: "approved",
   from: { $lte: dateKey },
   to: { $gte: dateKey },
-}));
+}).select("duration halfDayPeriod days").lean();
+
+export const hasApprovedLeaveOn = async (employeeId, dateKey) => {
+  const leave = await getApprovedLeaveOn(employeeId, dateKey);
+  return Boolean(leave && leave.duration !== "half");
+};

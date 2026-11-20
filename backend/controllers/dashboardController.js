@@ -3,10 +3,11 @@ import automationStateModel from "../models/AutomationState.js";
 import holidayModel from "../models/Holiday.js";
 import leaveRequestModel from "../models/LeaveRequest.js";
 import userModel from "../models/User.js";
-import { getLeaveBalances, addDays } from "../services/leaveService.js";
+import { getLeaveBalances, getCurrentLeaveYear, addDays } from "../services/leaveService.js";
 import { buildMonthlyReport, monthRange } from "../services/reportService.js";
 import { getKarachiDateString, isValidCalendarDate } from "../utils/calendar.js";
 import { getResolutionContext, resolveRange, resolveRangeBulk } from "../services/automationService.js";
+import { holidayOnDateQuery, holidayRangeQuery } from "../utils/holidayCalendar.js";
 
 const employeeFilter = { role: "employee", onboardingStatus: "approved" };
 const calendarMonth = (month) => typeof month === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? { from: `${month}-01`, to: month.endsWith("12") ? `${Number(month.slice(0, 4)) + 1}-01-01` : `${month.slice(0, 4)}-${String(Number(month.slice(5, 7)) + 1).padStart(2, "0")}-01` } : null;
@@ -43,9 +44,9 @@ export const dashboardAdmin = async (req, res) => {
       recentLeaves,
       recentAttendance,
     ] = await Promise.all([
-      userModel.countDocuments(employeeFilter),
+      userModel.countDocuments({ role: "employee" }),
       userModel.aggregate([
-        { $match: employeeFilter },
+        { $match: { role: "employee" } },
         { $group: { _id: "$onboardingStatus", count: { $sum: 1 } } },
       ]),
       userModel.countDocuments({ ...employeeFilter, createdAt: { $gte: monthStart } }),
@@ -108,15 +109,16 @@ export const dashboardAdmin = async (req, res) => {
       employee,
       resolved: attendanceDays.get(String(employee._id))?.[0],
     }));
-    const checkedInRows = todayRows.filter(({ resolved }) =>
+    const eligibleTodayRows = todayRows.filter(({ resolved }) => resolved?.status !== "notEligible");
+    const checkedInRows = eligibleTodayRows.filter(({ resolved }) =>
       ["present", "late"].includes(resolved?.status),
     );
-    const lateRows = todayRows.filter(({ resolved }) => resolved?.status === "late");
-    const onLeaveRows = todayRows.filter(({ resolved }) => resolved?.status === "leave");
-    const notCheckedInRows = todayRows.filter(({ resolved }) => resolved?.status === "pending");
+    const lateRows = eligibleTodayRows.filter(({ resolved }) => resolved?.status === "late");
+    const onLeaveRows = eligibleTodayRows.filter(({ resolved }) => resolved?.status === "leave");
+    const notCheckedInRows = eligibleTodayRows.filter(({ resolved }) => resolved?.status === "pending");
     const [context, holiday] = await Promise.all([
       getResolutionContext(date, date),
-      holidayModel.findOne({ date }).select("name date").lean(),
+      holidayModel.findOne(holidayOnDateQuery(date)).select("name date to").lean(),
     ]);
     const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
     const dayType = context.holidays.has(date)
@@ -124,9 +126,9 @@ export const dashboardAdmin = async (req, res) => {
       : context.weekendDays.includes(weekday)
         ? "weekend"
         : "working";
-    const expected = dayType === "working" ? activeEmployees.length : 0;
+    const expected = dayType === "working" ? eligibleTodayRows.length : 0;
     const departmentMap = new Map();
-    for (const { employee, resolved } of todayRows) {
+    for (const { employee, resolved } of eligibleTodayRows) {
       const name = employee.department || "General";
       const department = departmentMap.get(name) || { name, total: 0, checkedIn: 0 };
       department.total += 1;
@@ -256,7 +258,7 @@ export const dashboardAdmin = async (req, res) => {
       departments: [...departmentMap.values()]
         .sort((left, right) => right.total - left.total || left.name.localeCompare(right.name))
         .slice(0, 8),
-      activities: activities.slice(0, 6),
+      activities: activities.slice(0, 20),
       automation: automationState
         ? { lastRunAt: automationState.updatedAt, lastProcessedDate: automationState.lastProcessedDate }
         : null,
@@ -274,7 +276,7 @@ export const dashboardToday = async (req, res) => {
     const rows = await resolveRangeBulk(employees, date, date);
     const [context, holiday, pendingOnboarding, pendingLeaveRequests, missingRows] = await Promise.all([
       getResolutionContext(date, date),
-      holidayModel.findOne({ date }).select("name date").lean(),
+      holidayModel.findOne(holidayOnDateQuery(date)).select("name date to").lean(),
       userModel.countDocuments({ role: "employee", onboardingStatus: "pending" }),
       leaveRequestModel.countDocuments({ status: "pending", employee: { $in: employees.map((employee) => employee._id) } }),
       attendanceModel.find({ date: { $gte: addDays(date, -6), $lte: date }, missingCheckOut: true }).populate("employee", "name email").lean(),
@@ -307,12 +309,12 @@ export const dashboardCalendar = async (req, res) => {
   if (!isAdmin) filter.employee = req.user._id;
   try {
     const [holidays, leaves, days] = await Promise.all([
-      holidayModel.find({ date: { $gte: range.from, $lt: range.to } }).sort({ date: 1 }).lean(),
+      holidayModel.find(holidayRangeQuery(range.from, addDays(range.to, -1))).sort({ date: 1 }).lean(),
       leaveRequestModel.find(filter).populate("employee", "name").populate("leaveType", "name").sort({ from: 1 }).lean(),
       isAdmin ? Promise.resolve([]) : resolveRange(req.user._id, range.from, addDays(range.to, -1)),
     ]);
     const events = [
-      ...holidays.map((holiday) => ({ id: `h-${holiday._id}`, title: holiday.name, start: holiday.date, allDay: true, type: "holiday" })),
+      ...holidays.map((holiday) => ({ id: `h-${holiday._id}`, title: holiday.name, start: holiday.date, end: addDays(holiday.to || holiday.date, 1), to: holiday.to || holiday.date, allDay: true, type: "holiday" })),
       ...leaves.map((leave) => ({
         id: `l-${leave._id}`,
         title: isAdmin ? `${leave.employee?.name || "Employee"} - ${leave.leaveType?.name || "Leave"}` : leave.leaveType?.name || "Leave",
@@ -320,6 +322,8 @@ export const dashboardCalendar = async (req, res) => {
         end: addDays(leave.to, 1),
         to: leave.to,
         days: leave.days,
+        duration: leave.duration,
+        halfDayPeriod: leave.halfDayPeriod || null,
         allDay: true,
         type: "leave",
         status: leave.status,
@@ -335,6 +339,8 @@ export const dashboardCalendar = async (req, res) => {
             checkOut: attendance.checkOut,
             workedMinutes: attendance.workedMinutes,
             lateMinutes: attendance.lateMinutes,
+            leaveDays: attendance.leaveDays || 0,
+            leavePeriod: attendance.leavePeriod || null,
           }
         : null,
     }));
@@ -347,11 +353,12 @@ export const dashboardMe = async (req, res) => {
     const date = getKarachiDateString();
     const month = date.slice(0, 7);
     const range = monthRange(month);
+    const leaveYear = await getCurrentLeaveYear(date);
     const employee = await userModel.findById(req.user._id).lean();
     const [report, balances, holidays, leaves] = await Promise.all([
       buildMonthlyReport([employee], range),
-      getLeaveBalances(req.user._id, Number(month.slice(0, 4))),
-      holidayModel.find({ date: { $gte: addDays(date, 1) } }).sort({ date: 1 }).limit(3).lean(),
+      getLeaveBalances(req.user._id, leaveYear),
+      holidayModel.find({ date: { $gte: date } }).sort({ date: 1 }).limit(3).lean(),
       leaveRequestModel.find({ employee: req.user._id, status: "approved", to: { $gte: date } }).populate("leaveType", "name").sort({ from: 1 }).limit(3).lean(),
     ]);
     const [monthly] = report;

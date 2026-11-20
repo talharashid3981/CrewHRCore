@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
+import crypto from "node:crypto";
 import { z } from "zod";
 import userModel from "../models/User.js";
 import {
+  sendEmployeeInviteEmail,
   sendOnboardingApprovedEmail,
   sendOnboardingRejectedEmail,
 } from "../utils/emailService.js";
@@ -46,6 +48,10 @@ const adminUpdateSchema = z.object({
 }).strict();
 
 const statusSchema = z.object({ isActive: z.boolean() }).strict();
+const inviteSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
+  email: z.string().trim().email("Invalid email format").transform((value) => value.toLowerCase()),
+}).strict();
 const idIsValid = (id) => mongoose.Types.ObjectId.isValid(id);
 
 const minutes = (time) => {
@@ -90,6 +96,36 @@ const notFound = (res) => res.status(404).json({ success: false, message: "User 
 
 const sendEmailInBackground = (promise, label) => {
   void promise.catch((error) => console.error(`${label} failed:`, error.message));
+};
+
+const employeeFilterFromQuery = ({ status, account, department, search }) => {
+  const filter = { role: "employee" };
+  if (["incomplete", "pending", "approved", "rejected"].includes(status)) filter.onboardingStatus = status;
+  if (account === "active") filter.isActive = true;
+  if (account === "inactive") filter.isActive = false;
+  if (department?.trim()) filter.department = department.trim();
+  if (search?.trim()) {
+    const safeSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.$or = [
+      { name: { $regex: safeSearch, $options: "i" } },
+      { email: { $regex: safeSearch, $options: "i" } },
+      { department: { $regex: safeSearch, $options: "i" } },
+      { designation: { $regex: safeSearch, $options: "i" } },
+    ];
+  }
+  return filter;
+};
+
+const employeeSortFromQuery = (sort) => ({
+  name: { name: 1, _id: 1 },
+  joiningDate: { joiningDate: -1, _id: 1 },
+  status: { onboardingStatus: 1, name: 1, _id: 1 },
+}[sort] || { createdAt: -1, _id: -1 });
+
+const csvCell = (value) => {
+  const text = value === undefined || value === null ? "" : String(value);
+  const safeText = /^[\u0000-\u0020]*[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${safeText.replaceAll('"', '""')}"`;
 };
 
 export const submitOnboarding = async (req, res) => {
@@ -166,7 +202,7 @@ export const changeMyPassword = async (req, res) => {
 
 export const getSummary = async (req, res) => {
   try {
-    const [total, incomplete, pending, approved, rejected, active, inactive] = await Promise.all([
+    const [total, incomplete, pending, approved, rejected, active, inactive, departments] = await Promise.all([
       userModel.countDocuments({ role: "employee" }),
       userModel.countDocuments({ role: "employee", onboardingStatus: "incomplete" }),
       userModel.countDocuments({ role: "employee", onboardingStatus: "pending" }),
@@ -174,8 +210,13 @@ export const getSummary = async (req, res) => {
       userModel.countDocuments({ role: "employee", onboardingStatus: "rejected" }),
       userModel.countDocuments({ role: "employee", isActive: true }),
       userModel.countDocuments({ role: "employee", isActive: false }),
+      userModel.distinct("department", { role: "employee" }),
     ]);
-    return res.status(200).json({ success: true, summary: { total, incomplete, pending, approved, rejected, active, inactive } });
+    return res.status(200).json({
+      success: true,
+      summary: { total, incomplete, pending, approved, rejected, active, inactive },
+      departments: departments.filter(Boolean).sort((left, right) => left.localeCompare(right)),
+    });
   } catch (error) {
     console.error("Get user summary failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
@@ -184,21 +225,12 @@ export const getSummary = async (req, res) => {
 
 export const listUsers = async (req, res) => {
   try {
-    const { status, search, page = "1", limit = "20" } = req.query;
+    const { page = "1", limit = "8", sort } = req.query;
     const currentPage = Math.max(Number.parseInt(page, 10) || 1, 1);
     const pageSize = Math.min(Math.max(Number.parseInt(limit, 10) || 20, 1), 100);
-    const filter = { role: "employee" };
-    if (["incomplete", "pending", "approved", "rejected"].includes(status)) filter.onboardingStatus = status;
-    if (search?.trim()) {
-      const safeSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.$or = [
-        { name: { $regex: safeSearch, $options: "i" } },
-        { email: { $regex: safeSearch, $options: "i" } },
-        { department: { $regex: safeSearch, $options: "i" } },
-      ];
-    }
+    const filter = employeeFilterFromQuery(req.query);
     const [users, total] = await Promise.all([
-      userModel.find(filter).sort({ createdAt: -1 }).skip((currentPage - 1) * pageSize).limit(pageSize),
+      userModel.find(filter).sort(employeeSortFromQuery(sort)).skip((currentPage - 1) * pageSize).limit(pageSize),
       userModel.countDocuments(filter),
     ]);
     return res.status(200).json({
@@ -208,6 +240,114 @@ export const listUsers = async (req, res) => {
     });
   } catch (error) {
     console.error("List users failed:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const exportUsers = async (req, res) => {
+  try {
+    const users = await userModel.find(employeeFilterFromQuery(req.query))
+      .sort(employeeSortFromQuery(req.query.sort))
+      .select("name email department shiftStart shiftEnd designation joiningDate onboardingStatus isActive")
+      .lean();
+    const rows = [
+      ["Name", "Email", "Department", "Shift", "Job title", "Joining date", "Onboarding", "Account"],
+      ...users.map((employee) => [
+        employee.name,
+        employee.email,
+        employee.department,
+        employee.shiftStart && employee.shiftEnd
+          ? `${employee.shiftStart}-${employee.shiftEnd}`
+          : "",
+        employee.designation,
+        employee.joiningDate ? new Date(employee.joiningDate).toISOString().slice(0, 10) : "",
+        employee.onboardingStatus,
+        employee.isActive ? "Active" : "Inactive",
+      ]),
+    ];
+    const csv = `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\r\n")}`;
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="crewhr-employees.csv"');
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).send(csv);
+  } catch (error) {
+    console.error("Export employees failed:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const inviteEmployee = async (req, res) => {
+  try {
+    const parsed = inviteSchema.safeParse(req.body);
+    if (!parsed.success) return validationError(res, parsed);
+    if (await userModel.exists({ email: parsed.data.email })) {
+      return res.status(409).json({ success: false, message: "An account with this email already exists" });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const user = await userModel.create({
+      ...parsed.data,
+      password: crypto.randomBytes(48).toString("hex"),
+      role: "employee",
+      resetPasswordTokenHash: crypto.createHash("sha256").update(rawToken).digest("hex"),
+      resetPasswordExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+    const clientUrl = (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+    try {
+      await sendEmployeeInviteEmail(user, `${clientUrl}/reset-password?token=${rawToken}`);
+    } catch (emailError) {
+      user.resetPasswordTokenHash = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+      console.error("Employee invitation email failed:", emailError.message);
+      return res.status(502).json({
+        success: false,
+        message: "Employee account was created, but the invitation email could not be sent. Use Send reminder to retry.",
+        user: publicUser(user),
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: `Invitation sent to ${user.email}`,
+      user: publicUser(user),
+    });
+  } catch (error) {
+    console.error("Invite employee failed:", error);
+    if (error?.code === 11000) {
+      return res.status(409).json({ success: false, message: "An account with this email already exists" });
+    }
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const remindEmployee = async (req, res) => {
+  try {
+    if (!idIsValid(req.params.id)) return notFound(res);
+    const user = await userModel.findOne({ _id: req.params.id, role: "employee" })
+      .select("+resetPasswordTokenHash +resetPasswordExpires");
+    if (!user) return notFound(res);
+    if (!["incomplete", "rejected"].includes(user.onboardingStatus)) {
+      return res.status(409).json({ success: false, message: "Reminders are only available for incomplete or rejected onboarding" });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordTokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    user.resetPasswordExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+    const clientUrl = (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+    try {
+      await sendEmployeeInviteEmail(user, `${clientUrl}/reset-password?token=${rawToken}`);
+    } catch (emailError) {
+      user.resetPasswordTokenHash = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+      console.error("Employee reminder email failed:", emailError.message);
+      return res.status(502).json({ success: false, message: "The reminder email could not be sent. Please try again later." });
+    }
+    return res.status(200).json({ success: true, message: `Reminder sent to ${user.email}` });
+  } catch (error) {
+    console.error("Remind employee failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

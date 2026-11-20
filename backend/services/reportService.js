@@ -16,13 +16,19 @@ export const monthRange = (month) => {
 };
 
 export const summarizeResolved = (dailyRows) => {
-  const summary = { present: 0, late: 0, absent: 0, leave: 0, holidays: 0, workingDays: 0, attendancePercent: 0, totalLateMinutes: 0, workedHours: 0, missingCheckOuts: 0 };
+  const summary = { present: 0, late: 0, absent: 0, leave: 0, halfDayLeaves: 0, leaveDays: 0, holidays: 0, workingDays: 0, attendancePercent: 0, totalLateMinutes: 0, workedHours: 0, missingCheckOuts: 0 };
   for (const day of dailyRows) {
     if (["present", "late", "absent", "leave"].includes(day.status)) summary.workingDays += 1;
     if (day.status === "present") summary.present += 1;
     if (day.status === "late") summary.late += 1;
     if (day.status === "absent") summary.absent += 1;
     if (day.status === "leave") summary.leave += 1;
+    if (day.attendance?.leaveDays) {
+      summary.leaveDays += day.attendance.leaveDays;
+      if (day.attendance.leaveDays === 0.5) summary.halfDayLeaves += 1;
+    } else if (day.status === "leave") {
+      summary.leaveDays += 1;
+    }
     if (day.status === "holiday") summary.holidays += 1;
     summary.totalLateMinutes += day.attendance?.lateMinutes || 0;
     summary.workedHours += (day.attendance?.workedMinutes || 0) / 60;
@@ -31,6 +37,7 @@ export const summarizeResolved = (dailyRows) => {
   const denominator = summary.present + summary.late + summary.absent;
   summary.attendancePercent = denominator ? Number((((summary.present + summary.late) / denominator) * 100).toFixed(2)) : 0;
   summary.workedHours = Number(summary.workedHours.toFixed(2));
+  summary.leaveDays = Number(summary.leaveDays.toFixed(2));
   return summary;
 };
 

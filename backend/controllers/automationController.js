@@ -11,6 +11,16 @@ export const dailyCloseController = async (req, res) => {
   catch (error) { console.error("Daily close failed:", error); return res.status(500).json({ success: false, message: "Internal server error" }); }
 };
 
+export const runAttendanceAutomationController = async (req, res) => {
+  try {
+    const result = await closeDays({ source: "manual", initiatedBy: req.user._id });
+    return res.json({ success: true, result });
+  } catch (error) {
+    console.error("Admin attendance automation run failed:", error);
+    return res.status(500).json({ success: false, message: "Unable to run attendance automation" });
+  }
+};
+
 export const recomputeAttendanceController = async (req, res) => {
   const parsed = rangeSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message || "Invalid date range" });
