@@ -32,6 +32,15 @@ export const getEmployeeSummary = () =>
 export const listEmployees = (params = {}) =>
   api.get("/users", { params }).then((res) => res.data);
 
+export const exportEmployees = (params = {}) =>
+  api.get("/users/export", { params, responseType: "blob" }).then((res) => res);
+
+export const inviteEmployee = (data) =>
+  api.post("/users/invite", data).then((res) => res.data);
+
+export const remindEmployee = (id) =>
+  api.post(`/users/${id}/remind`).then((res) => res.data);
+
 export const approveEmployee = (id, data = {}) =>
   api.patch(`/users/${id}/approve`, data).then((res) => res.data);
 
@@ -83,6 +92,12 @@ export const createLeaveType = (data) =>
 export const updateLeaveType = (id, data) =>
   api.patch(`/leave-types/${id}`, data).then((res) => res.data);
 
+export const getLeavePolicy = () =>
+  api.get("/leave-types/policy").then((res) => res.data);
+
+export const updateLeavePolicy = (data) =>
+  api.put("/leave-types/policy", data).then((res) => res.data);
+
 export const previewLeave = (params) =>
   api.get("/leaves/preview", { params }).then((res) => res.data);
 
@@ -101,6 +116,12 @@ export const cancelLeave = (id) =>
 export const listLeaveRequests = (params = {}) =>
   api.get("/leaves", { params }).then((res) => res.data);
 
+export const getAdminLeaveDetail = (id) =>
+  api.get(`/leaves/detail/${id}`).then((res) => res.data);
+
+export const exportLeaveRequests = (params = {}) =>
+  api.get("/leaves/export", { params, responseType: "blob" }).then((res) => res);
+
 export const approveLeave = (id) =>
   api.patch(`/leaves/${id}/approve`).then((res) => res.data);
 
@@ -109,6 +130,18 @@ export const rejectLeave = (id, note) =>
 
 export const recomputeAttendance = (data) =>
   api.post("/admin/attendance/recompute", data).then((res) => res.data);
+
+export const runAttendanceAutomation = () =>
+  api.post("/admin/attendance/run-now").then((res) => res.data);
+
+export const getAdminAttendanceDay = (params = {}) =>
+  api.get("/admin/attendance/day", { params }).then((res) => res.data);
+
+export const exportAdminAttendanceDay = (params = {}) =>
+  api.get("/admin/attendance/export", { params, responseType: "blob" }).then((res) => res);
+
+export const correctMissingCheckOut = (attendanceId, data) =>
+  api.post(`/admin/attendance/${attendanceId}/correct-checkout`, data).then((res) => res.data);
 
 export const resolveAttendanceRange = (employeeId, params) =>
   api.get(`/admin/attendance/resolve/${employeeId}`, { params }).then((res) => res.data);

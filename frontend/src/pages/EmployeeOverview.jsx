@@ -298,6 +298,7 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
         <TodayAttendanceCard
           dashboard
           attendance={today?.record}
+          leave={today?.leave}
           date={today?.date}
           status={today?.record?.status || today?.status || "pending"}
           workedMinutes={

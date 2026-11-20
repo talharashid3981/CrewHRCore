@@ -47,9 +47,10 @@ const normalizedHoliday = (holiday) => {
   if (holiday.description !== undefined) result.description = holiday.description;
   return result;
 };
-const holidayRangeError = (from, to) => {
+const holidayRangeError = (from, to, earliestStart) => {
   if (!from) return "Holiday start date is required";
   if (!isValidCalendarDate(from) || !isValidCalendarDate(to)) return "Holiday dates must be valid YYYY-MM-DD dates";
+  if (earliestStart && from < earliestStart) return "A holiday cannot start before today";
   if (from > to) return "To date cannot be before from date";
   if ((new Date(`${to}T00:00:00Z`) - new Date(`${from}T00:00:00Z`)) / 86400000 > 365) {
     return "A holiday range cannot exceed 366 days";
@@ -165,7 +166,11 @@ export const createHoliday = async (req, res) => {
     const parsed = holidaySchema.safeParse(req.body);
     if (!parsed.success) return validationError(res, parsed);
     const holidayData = normalizedHoliday(parsed.data);
-    const rangeError = holidayRangeError(holidayData.date, holidayData.to || holidayData.date);
+    const rangeError = holidayRangeError(
+      holidayData.date,
+      holidayData.to || holidayData.date,
+      getKarachiDateString(),
+    );
     if (rangeError) return res.status(400).json({ success: false, message: rangeError });
     const conflicts = await findHolidayConflicts(holidayData.date, holidayData.to || holidayData.date);
     if (conflicts.length) {
@@ -198,7 +203,13 @@ export const updateHoliday = async (req, res) => {
       to: parsed.data.to ?? holiday.to,
       description: parsed.data.description ?? holiday.description,
     });
-    const rangeError = holidayRangeError(normalized.date, normalized.to || normalized.date);
+    const rangeChanged = normalized.date !== holiday.date
+      || (normalized.to || normalized.date) !== (holiday.to || holiday.date);
+    const rangeError = holidayRangeError(
+      normalized.date,
+      normalized.to || normalized.date,
+      rangeChanged ? getKarachiDateString() : undefined,
+    );
     if (rangeError) return res.status(400).json({ success: false, message: rangeError });
     const conflicts = await findHolidayConflicts(normalized.date, normalized.to || normalized.date, holiday._id);
     if (conflicts.length) {

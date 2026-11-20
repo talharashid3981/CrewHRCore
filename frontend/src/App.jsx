@@ -7,9 +7,11 @@ import OnboardingPage from "./pages/OnboardingPage";
 import AdminDashboardpage from "./pages/adminpages/AdminDashboardpage";
 import Module3SettingsPage from "./pages/adminpages/Module3SettingsPage";
 import HolidayCalendarPage from "./pages/HolidayCalendarPage";
+import AdminCalendarPage from "./pages/adminpages/AdminCalendarPage";
 import AttendancePage from "./pages/AttendancePage";
 import ProtectedRoute from "./ProtectedRoute";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
 
 function App() {
@@ -25,13 +27,20 @@ function App() {
         <Route path="/admin" element={<AdminDashboardpage />} />
         <Route path="/admin/dashboard" element={<AdminDashboardpage />} />
         <Route path="/admin/settings" element={<Module3SettingsPage />} />
-        <Route path="/calendar" element={<HolidayCalendarPage />} />
+        <Route path="/calendar" element={<CalendarRoute />} />
         <Route path="/attendance" element={<AttendancePage />} />
       </Route>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
+}
+
+
+
+function CalendarRoute() {
+  const { user } = useAuth();
+  return user?.role === "admin" ? <AdminCalendarPage /> : <HolidayCalendarPage />;
 }
 
 export default App;

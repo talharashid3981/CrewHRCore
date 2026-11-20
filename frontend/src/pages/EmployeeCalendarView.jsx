@@ -29,6 +29,8 @@ const filters = [
 
 const dateAtNoon = (date) => dayjs(`${date}T12:00:00`);
 const currentDate = () => dayjs().tz(timeZone).format("YYYY-MM-DD");
+const eventCoversDate = (event, date) =>
+  event.start <= date && (event.to || event.start) >= date;
 const getInitials = (name = "") =>
   name
     .trim()
@@ -86,7 +88,12 @@ const dayTypeLabel = (status) => {
 };
 
 const eventSubtitle = (event) => {
-  if (event.type === "holiday") return "Public holiday";
+  if (event.type === "holiday") {
+    const end = event.to || event.start;
+    return end === event.start
+      ? "Public holiday"
+      : `Public holiday · ${dateAtNoon(event.start).format("D MMM")}–${dateAtNoon(end).format("D MMM")}`;
+  }
   if (event.type === "company") return "Company event";
   if (event.status === "pending") {
     const duration = event.days || 1;
@@ -210,7 +217,7 @@ export default function EmployeeCalendarView({ embedded = false }) {
   const attendance = selectedDay?.attendance;
   const attendanceStatus = attendance?.status || selectedDay?.status;
   const attendanceText = attendance
-    ? `${attendance.status[0].toUpperCase()}${attendance.status.slice(1)}${attendance.checkIn ? ` · ${formatTime(attendance.checkIn)}` : ""}`
+    ? `${attendance.status[0].toUpperCase()}${attendance.status.slice(1)}${attendance.checkIn ? ` · ${formatTime(attendance.checkIn)}` : ""}${attendance.leaveDays ? ` · ${attendance.leaveDays} leave day${attendance.leaveDays === 1 ? "" : "s"}${attendance.leavePeriod ? ` (${attendance.leavePeriod})` : ""}` : ""}`
     : selectedDay?.status === "absent"
       ? "Absent"
       : selectedDay?.status === "leave"
@@ -243,7 +250,9 @@ export default function EmployeeCalendarView({ embedded = false }) {
       ];
       visibleRangeEvents.forEach((event) => {
         sheet.addRow({
-          date: dateAtNoon(event.start).format("DD MMM YYYY"),
+          date: event.type === "holiday" && event.to && event.to !== event.start
+            ? `${dateAtNoon(event.start).format("DD MMM YYYY")} – ${dateAtNoon(event.to).format("DD MMM YYYY")}`
+            : dateAtNoon(event.start).format("DD MMM YYYY"),
           title: event.title,
           category: event.type === "holiday" ? "Public holiday" : event.type === "company" ? "Company event" : "Leave",
           status: event.status || "",
@@ -315,22 +324,11 @@ export default function EmployeeCalendarView({ embedded = false }) {
             dayData?.status !== "notEligible"
             ? dayStatusTone(dayData?.attendance?.status || dayData?.status)
             : "";
-          const events = visibleRangeEvents
-            .filter(
-              (event) =>
-                event.start === date ||
-                (date === visibleDates[0] &&
-                  event.start < date &&
-                  (event.to || event.start) >= date),
-            )
-            .slice(0, 2);
-          const eventCount = visibleRangeEvents.filter(
-            (event) =>
-              event.start === date ||
-              (date === visibleDates[0] &&
-                event.start < date &&
-                (event.to || event.start) >= date),
-          ).length;
+          const eventsForDate = visibleRangeEvents
+            .filter((event) => eventCoversDate(event, date))
+            .sort((first, second) => first.start.localeCompare(second.start));
+          const events = eventsForDate.slice(0, 2);
+          const eventCount = eventsForDate.length;
 
           return (
             <button
@@ -395,13 +393,15 @@ export default function EmployeeCalendarView({ embedded = false }) {
 
   const agendaRows = visibleDates.flatMap((date) => {
     const eventRows = visibleRangeEvents
-      .filter(
-        (event) =>
-          event.start === date ||
-          (date === visibleDates[0] &&
-            event.start < date &&
-            (event.to || event.start) >= date),
-      )
+      .filter((event) => {
+        if (event.type === "holiday") {
+          const previousDate = dateAtNoon(date).subtract(1, "day").format("YYYY-MM-DD");
+          return eventCoversDate(event, date)
+            && (date === visibleDates[0] || !eventCoversDate(event, previousDate));
+        }
+        return event.start === date
+          || (date === visibleDates[0] && eventCoversDate(event, date));
+      })
       .map((event) => ({ date, event }));
     const day = dayMap.get(date);
     if (

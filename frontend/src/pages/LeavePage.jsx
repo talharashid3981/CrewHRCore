@@ -20,6 +20,7 @@ import timezone from "dayjs/plugin/timezone";
 import {
   applyLeave,
   cancelLeave,
+  getLeavePolicy,
   getMyLeaveBalance,
   getMyLeaves,
   listLeaveTypes,
@@ -32,11 +33,28 @@ dayjs.extend(timezone);
 const zone = "Asia/Karachi";
 const pageSize = 6;
 const today = () => dayjs().tz(zone).format("YYYY-MM-DD");
-const currentYear = () => Number(dayjs().tz(zone).format("YYYY"));
+const calendarYear = () => Number(dayjs().tz(zone).format("YYYY"));
 const formatDate = (value, format = "DD MMM YYYY") =>
   value ? dayjs(`${value}T12:00:00Z`).tz(zone).format(format) : "—";
 const submittedDate = (value) =>
   value ? dayjs(value).tz(zone).format("D MMM") : "—";
+const leaveYearStartDate = (year, policy) => {
+  const [month, day] = (policy?.leaveYearStart || "01-01").split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+};
+const leaveYearEndDate = (year, policy) => {
+  const [month, day] = (policy?.leaveYearStart || "01-01").split("-").map(Number);
+  const maxDay = new Date(Date.UTC(year + 1, month, 0)).getUTCDate();
+  return new Date(Date.UTC(year + 1, month - 1, Math.min(day, maxDay) - 1))
+    .toISOString()
+    .slice(0, 10);
+};
+const leaveYearForDate = (date, policy) => {
+  const year = Number(date.slice(0, 4));
+  return date >= leaveYearStartDate(year, policy) ? year : year - 1;
+};
+const currentLeaveYear = (policy) => leaveYearForDate(today(), policy);
 
 const statusStyles = {
   pending: "bg-amber-50 text-amber-700 ring-amber-200",
@@ -69,7 +87,14 @@ const balanceThemes = [
 ];
 
 export default function LeavePage() {
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedYear, setSelectedYear] = useState(calendarYear);
+  const [policy, setPolicy] = useState({
+    allowHalfDay: true,
+    requireReason: true,
+    allowPastDatedRequests: false,
+    pastDatedLimitDays: 7,
+    leaveYearStart: "01-01",
+  });
   const [types, setTypes] = useState([]);
   const [balances, setBalances] = useState([]);
   const [leaves, setLeaves] = useState([]);
@@ -80,6 +105,9 @@ export default function LeavePage() {
     from: today(),
     to: today(),
     reason: "",
+    duration: "full",
+    halfDayPeriod: "morning",
+    documentReference: "",
   });
   const [preview, setPreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -89,9 +117,23 @@ export default function LeavePage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const historicalYear = selectedYear < currentYear();
-  const formStartDate =
-    selectedYear === currentYear() ? today() : `${selectedYear}-01-01`;
+  const activeLeaveYear = currentLeaveYear(policy);
+  const historicalYear = selectedYear < activeLeaveYear;
+  const pastDateLimit = policy.allowPastDatedRequests
+    ? dayjs(`${today()}T12:00:00Z`).subtract(policy.pastDatedLimitDays || 7, "day").format("YYYY-MM-DD")
+    : today();
+  const leaveYearStart = leaveYearStartDate(selectedYear, policy);
+  const formStartDate = selectedYear === activeLeaveYear
+    ? (pastDateLimit > leaveYearStart ? pastDateLimit : leaveYearStart)
+    : leaveYearStart;
+  const formEndDate = leaveYearEndDate(selectedYear, policy);
+  const selectedType = useMemo(
+    () => types.find((type) => String(type._id) === String(form.leaveType)),
+    [types, form.leaveType],
+  );
+  const requiresDocument = selectedType?.documentRequiredAfterDays !== null
+    && selectedType?.documentRequiredAfterDays !== undefined
+    && (preview?.workingDates?.length || 0) > selectedType.documentRequiredAfterDays;
   const selectedBalance = useMemo(
     () =>
       balances.find(
@@ -124,12 +166,25 @@ export default function LeavePage() {
     setLoading(true);
     setError("");
     try {
-      const [typeData, balanceData, leaveData] = await Promise.all([
+      const [typeData, balanceData, leaveData, policyData] = await Promise.all([
         listLeaveTypes(),
         getMyLeaveBalance(selectedYear),
         getMyLeaves({ year: selectedYear }),
+        getLeavePolicy(),
       ]);
       const nextTypes = typeData.leaveTypes || [];
+      const nextPolicy = policyData.policy || {
+        allowHalfDay: true,
+        requireReason: true,
+        allowPastDatedRequests: false,
+        pastDatedLimitDays: 7,
+        leaveYearStart: "01-01",
+      };
+      setPolicy(nextPolicy);
+      if (selectedYear === calendarYear()) {
+        const nextYear = currentLeaveYear(nextPolicy);
+        if (nextYear !== selectedYear) setSelectedYear(nextYear);
+      }
       setTypes(nextTypes);
       setBalances(balanceData.balances || []);
       setLeaves(leaveData.leaves || []);
@@ -182,7 +237,12 @@ export default function LeavePage() {
       }
 
       setPreviewLoading(true);
-      previewLeave({ from: form.from, to: form.to })
+      previewLeave({
+        from: form.from,
+        to: form.to,
+        duration: form.duration,
+        ...(form.leaveType ? { leaveType: form.leaveType } : {}),
+      })
         .then((result) => {
           if (active) setPreview(result);
         })
@@ -201,16 +261,28 @@ export default function LeavePage() {
       active = false;
       clearTimeout(timer);
     };
-  }, [form.from, form.to]);
+  }, [form.from, form.to, form.duration, form.leaveType]);
 
   const update = (event) => {
     const { name, value } = event.target;
-    if (name === "from" || name === "to") {
+    if (name === "from" || name === "to" || name === "duration") {
       setPreview(null);
       setPreviewError("");
       setPreviewLoading(true);
     }
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => {
+      if (name === "duration") {
+        return {
+          ...current,
+          duration: value,
+          to: value === "half" ? current.from : current.to,
+        };
+      }
+      if (name === "from" && current.duration === "half") {
+        return { ...current, from: value, to: value };
+      }
+      return { ...current, [name]: value };
+    });
   };
 
   const resetForm = () => {
@@ -219,6 +291,9 @@ export default function LeavePage() {
       from: formStartDate,
       to: formStartDate,
       reason: "",
+      duration: "full",
+      halfDayPeriod: "morning",
+      documentReference: "",
     }));
     setMessage("");
     setError("");
@@ -232,7 +307,13 @@ export default function LeavePage() {
     try {
       const result = await applyLeave(form);
       setMessage(result.message || "Leave request submitted.");
-      setForm((current) => ({ ...current, reason: "" }));
+      setForm((current) => ({
+        ...current,
+        reason: "",
+        duration: "full",
+        halfDayPeriod: "morning",
+        documentReference: "",
+      }));
       await load();
     } catch (requestError) {
       setError(
@@ -282,7 +363,7 @@ export default function LeavePage() {
               setSelectedYear(Number(event.target.value));
             }}
           >
-            {[currentYear() - 1, currentYear(), currentYear() + 1].map(
+            {[activeLeaveYear - 1, activeLeaveYear, activeLeaveYear + 1].map(
               (yearOption) => (
                 <option key={yearOption} value={yearOption}>
                   {yearOption}
@@ -319,7 +400,7 @@ export default function LeavePage() {
           const Icon = theme.icon;
           const used = Math.max(0, balance.approved || 0);
           const isUnlimited = Boolean(balance.isUnlimited);
-          const quota = Math.max(0, balance.yearlyQuota || 0);
+          const quota = Math.max(0, balance.effectiveQuota ?? balance.yearlyQuota ?? 0);
           const progress =
             !isUnlimited && quota
               ? Math.min(100, (used / quota) * 100)
@@ -506,7 +587,7 @@ export default function LeavePage() {
                     name="from"
                     type="date"
                     min={formStartDate}
-                    max={`${selectedYear}-12-31`}
+                    max={formEndDate}
                     value={form.from}
                     onChange={update}
                     disabled={historicalYear}
@@ -522,10 +603,10 @@ export default function LeavePage() {
                     name="to"
                     type="date"
                     min={form.from || formStartDate}
-                    max={`${selectedYear}-12-31`}
+                    max={formEndDate}
                     value={form.to}
                     onChange={update}
-                    disabled={historicalYear}
+                    disabled={historicalYear || form.duration === "half"}
                     required
                   />
                 </label>
@@ -540,7 +621,7 @@ export default function LeavePage() {
                       {preview.days}
                     </strong>
                     <span className="text-[11px] text-slate-600">
-                      working {preview.days === 1 ? "day" : "days"}
+                      working {preview.days <= 1 ? "day" : "days"}
                     </span>
                   </div>
                   {selectedBalance?.isUnlimited ? (
@@ -591,8 +672,67 @@ export default function LeavePage() {
               </p>
             )}
 
+            {policy.allowHalfDay && (
+              <div className="grid gap-2 sm:grid-cols-[1fr_1fr]">
+                <label className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-[12px] font-semibold text-slate-700">
+                  <input
+                    checked={form.duration === "half"}
+                    className="size-4 accent-violet-600"
+                    disabled={historicalYear}
+                    onChange={(event) => update({
+                      target: { name: "duration", value: event.target.checked ? "half" : "full" },
+                    })}
+                    type="checkbox"
+                  />
+                  Half-day request
+                </label>
+                {form.duration === "half" && (
+                  <label className="relative flex items-center rounded-lg border border-slate-200 px-3">
+                    <span className="sr-only">Half-day period</span>
+                    <select
+                      className="h-10 w-full appearance-none bg-transparent text-[12px] text-slate-700 outline-none"
+                      name="halfDayPeriod"
+                      value={form.halfDayPeriod}
+                      onChange={update}
+                      disabled={historicalYear}
+                    >
+                      <option value="morning">Morning</option>
+                      <option value="afternoon">Afternoon</option>
+                    </select>
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-400"
+                      size={14}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
+
+            {selectedType?.minimumNoticeDays > 0 && (
+              <p className="rounded-lg bg-slate-50 px-3 py-2 text-[10px] text-slate-500">
+                This leave type requires {selectedType.minimumNoticeDays} days&apos; notice.
+              </p>
+            )}
+
+            {requiresDocument && (
+              <label className="block text-[12px] font-semibold text-slate-700">
+                Supporting document link <span className="text-rose-500">*</span>
+                <input
+                  className="mt-1.5 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12px] font-normal text-slate-800 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                  name="documentReference"
+                  type="url"
+                  value={form.documentReference}
+                  onChange={update}
+                  disabled={historicalYear}
+                  required
+                  placeholder="https://..."
+                />
+              </label>
+            )}
+
             <label className="block text-[12px] font-semibold text-slate-700">
-              Reason
+              Reason {!policy.requireReason && <span className="font-normal text-slate-400">(optional)</span>}
               <span className="mt-1.5 block">
                 <textarea
                   className="min-h-[88px] w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-normal text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
@@ -600,10 +740,10 @@ export default function LeavePage() {
                   value={form.reason}
                   onChange={update}
                   disabled={historicalYear}
-                  minLength={3}
+                  minLength={policy.requireReason ? 3 : undefined}
                   maxLength={500}
                   placeholder="Briefly explain your request"
-                  required
+                  required={policy.requireReason}
                 />
               </span>
               <span className="mt-1 flex justify-end text-[10px] font-normal text-slate-400">
@@ -629,6 +769,7 @@ export default function LeavePage() {
                   historicalYear ||
                   !types.length ||
                   !preview?.days ||
+                  (requiresDocument && !form.documentReference) ||
                   (selectedBalance &&
                     !selectedBalance.isUnlimited &&
                     selectedBalance.available < preview.days)

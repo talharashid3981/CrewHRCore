@@ -173,6 +173,10 @@ export default function AttendancePage({ embedded = false }) {
     const present = history.filter((record) => record.status === "present").length;
     const late = history.filter((record) => record.status === "late").length;
     const leave = history.filter((record) => record.status === "leave").length;
+    const halfDayLeaveDays = history.reduce(
+      (total, record) => total + (record.leaveDays || 0),
+      0,
+    );
     const missingCheckOut = history.filter(
       (record) => record.missingCheckOut,
     ).length;
@@ -186,6 +190,7 @@ export default function AttendancePage({ embedded = false }) {
       present,
       late,
       leave,
+      halfDayLeaveDays,
       missingCheckOut,
       workingDays,
       attendancePercent: denominator
@@ -293,6 +298,7 @@ export default function AttendancePage({ embedded = false }) {
       <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1.25fr)_minmax(280px,.9fr)] xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,1fr)]">
         <TodayAttendanceCard
           attendance={today?.record}
+          leave={today?.leave}
           date={today?.date}
           status={today?.record?.status || today?.status || "pending"}
           workedMinutes={
@@ -526,6 +532,7 @@ export default function AttendancePage({ embedded = false }) {
                 ["Present", counts.present, "emerald"],
                 ["Late", counts.late, "amber"],
                 ["Leave", counts.leave, "violet"],
+                ["Half-day leave · days", counts.halfDayLeaveDays, "violet"],
                 ["Missing check-out", counts.missingCheckOut, "rose"],
               ].map(([label, count, color]) => (
                 <span
@@ -599,6 +606,9 @@ export default function AttendancePage({ embedded = false }) {
                   const recordStatus = record.missingCheckOut
                     ? "missing-check-out"
                     : record.status;
+                  const recordStatusLabel = record.leaveDays
+                    ? `${recordStatus.replaceAll("-", " ")} · ${record.leaveDays} leave day${record.leaveDays === 1 ? "" : "s"}${record.leavePeriod ? ` (${record.leavePeriod})` : ""}`
+                    : recordStatus.replaceAll("-", " ");
                   const recordLocation =
                     record.checkOutLocation || record.checkInLocation;
                   const recordMinutes =
@@ -663,7 +673,7 @@ export default function AttendancePage({ embedded = false }) {
                             "bg-slate-100 text-slate-600 ring-slate-200"
                           }`}
                         >
-                          {recordStatus.replaceAll("-", " ")}
+                          {recordStatusLabel}
                         </span>
                       </td>
                     </tr>
