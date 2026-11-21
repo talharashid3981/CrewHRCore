@@ -1,10 +1,11 @@
 import jwt from "jsonwebtoken";
 import userModel from "../models/User.js";
+import { authCookieName } from "../utils/sessionSecurity.js";
 
 
 export const protect  = async (req,res,next)=>{
     try{
-        const token = req.cookies?.token;
+        const token = req.cookies?.[authCookieName];
         if(!token){
             return res.status(401).json({
                 success : false ,
@@ -13,8 +14,8 @@ export const protect  = async (req,res,next)=>{
         }
 
         const decode = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await userModel.findById(decode.id)
-         if (!user || !user.isActive) {
+        const user = await userModel.findById(decode.id).select("+tokenVersion");
+         if (!user || !user.isActive || decode.tokenVersion !== user.tokenVersion) {
       return res.status(401).json({ success: false, message: "User not found" });
     }
 

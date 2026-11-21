@@ -241,7 +241,7 @@ export default function Signuppage() {
                     onChange={update}
                     placeholder="Create a password"
                     autoComplete="new-password"
-                    minLength={8}
+                    minLength={12}
                     aria-invalid={Boolean(error)}
                     aria-describedby="signup-password-help"
                     required
@@ -261,7 +261,7 @@ export default function Signuppage() {
                   id="signup-password-help"
                   className="text-[12px] font-normal text-slate-500"
                 >
-                  Use at least 8 characters.
+                  Use at least 12 characters.
                 </span>
               </label>
 

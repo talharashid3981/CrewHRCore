@@ -70,6 +70,18 @@ const officeSettingsSchema = new mongoose.Schema({
       message: "Weekend days must be unique numbers from 0 to 6",
     },
   },
+  departments: {
+    type: [String],
+    default: [],
+    validate: {
+      validator: (departments) => departments.every((department) => (
+        typeof department === "string"
+        && department.trim().length > 0
+        && department.trim().length <= 100
+      )) && new Set(departments.map((department) => department.trim().toLocaleLowerCase())).size === departments.length,
+      message: "Departments must be unique names of 100 characters or fewer",
+    },
+  },
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",

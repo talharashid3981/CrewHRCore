@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import connectDB from "./config/db.js";
 import authrouter from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -13,9 +14,11 @@ import automationRoutes from "./routes/automationRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import cron from "node-cron";
+import { csrfProtection } from "./middleware/security.js";
 
 const app = express();
 app.disable("x-powered-by");
+if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 
 const isProduction = process.env.NODE_ENV === "production";
 const configuredOrigin = process.env.CLIENT_URL?.trim();
@@ -31,9 +34,20 @@ app.use(cors({
   },
   credentials: true,
 }));
-
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      baseUri: ["'none'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
+app.use(csrfProtection);
 
 app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "Crew HRCore API is Healthy" });

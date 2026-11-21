@@ -180,7 +180,7 @@ export const getAdminAttendanceDay = async (req, res) => {
     const items = filteredRows.slice((page - 1) * limit, page * limit).map(({ employee, day, approvedLeave }) => ({
       attendanceId: day.attendance?._id || null,
       employee: { id: employee._id, name: employee.name, email: employee.email },
-      department: employee.department || "General",
+      department: employee.department || null,
       shiftStart: employee.shiftStart || null,
       shiftEnd: employee.shiftEnd || null,
       status: day.status,
@@ -202,7 +202,7 @@ export const getAdminAttendanceDay = async (req, res) => {
       automation: data.automation,
       rows: items,
       pagination: { page, limit, total: filteredRows.length, pages },
-      departments: [...new Set(data.rows.map(({ employee }) => employee.department || "General"))].sort(),
+      departments: [...new Set(data.rows.map(({ employee }) => employee.department).filter(Boolean))].sort(),
       missingCheckOuts: data.missingCheckOuts,
       activities: data.activities,
     });
@@ -231,7 +231,7 @@ export const exportAdminAttendanceDay = async (req, res) => {
       ...rows.map(({ employee, day, approvedLeave }) => [
         employee.name,
         employee.email,
-        employee.department || "General",
+        employee.department || "",
         day.status,
         day.attendance?.checkIn ? new Date(day.attendance.checkIn).toISOString() : "",
         day.attendance?.checkOut ? new Date(day.attendance.checkOut).toISOString() : "",

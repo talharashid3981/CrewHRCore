@@ -37,8 +37,7 @@ const userSchema = new mongoose.Schema({
     },
     department : {
         type : String,
-        trim : true,
-        default : "General"
+        trim : true
     },
     designation : {
         type : String,
@@ -92,6 +91,11 @@ const userSchema = new mongoose.Schema({
     resetPasswordExpires : {
         type : Date,
         select : false
+    },
+    tokenVersion: {
+        type: Number,
+        default: 0,
+        select: false
     }
 
 },{

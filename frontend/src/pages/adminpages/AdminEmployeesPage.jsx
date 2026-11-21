@@ -22,6 +22,7 @@ import {
   exportEmployees,
   getEmployeeMonthlyReport,
   getEmployeeSummary,
+  getOfficeSettings,
   inviteEmployee,
   listEmployees,
   rejectEmployee,
@@ -87,7 +88,7 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
     setLoading(true);
     setError("");
     try {
-      const [summaryData, employeeData] = await Promise.all([
+      const [summaryData, employeeData, officeData] = await Promise.all([
         getEmployeeSummary(),
         listEmployees({
           status: status || undefined,
@@ -98,10 +99,11 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
           page,
           limit: pageSize,
         }),
+        getOfficeSettings(),
       ]);
       if (requestIdForLoad !== requestId.current) return;
       setSummary({ ...emptySummary, ...(summaryData.summary || {}) });
-      setDepartments(summaryData.departments || []);
+      setDepartments(officeData.settings?.departments || []);
       setEmployees(employeeData.users || []);
       setPagination(employeeData.pagination || { page: 1, pages: 1, total: 0 });
     } catch (requestError) {
@@ -420,7 +422,12 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
       <form className="grid gap-3 sm:grid-cols-2" onSubmit={saveEdit}>
         <Field label="Full name"><input className={fieldClass} name="name" defaultValue={editing.name} required minLength={2} maxLength={100} /></Field>
         <Field label="Email"><input className={`${fieldClass} bg-slate-50 text-slate-500`} value={editing.email} readOnly /></Field>
-        <Field label="Department"><input className={fieldClass} name="department" defaultValue={editing.department || ""} required maxLength={100} /></Field>
+        <Field label="Department">
+          <select className={fieldClass} name="department" defaultValue={departments.includes(editing.department) ? editing.department : ""} required>
+            <option value="" disabled>Select a configured department</option>
+            {departments.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </Field>
         <Field label="Job title"><input className={fieldClass} name="designation" defaultValue={editing.designation || ""} maxLength={100} /></Field>
         <Field label="Shift">
           <select className={fieldClass} name="shift" defaultValue={editing.shift || "AM"}>

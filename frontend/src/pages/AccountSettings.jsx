@@ -212,13 +212,13 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
       setError("Your new password and confirmation do not match.");
       return;
     }
-    if (passwordForm.newPassword.length < 8) {
-      setError("Your new password must have at least 8 characters.");
+    if (passwordForm.newPassword.length < 12) {
+      setError("Your new password must have at least 12 characters.");
       return;
     }
     setSavingPassword(true);
     try {
-      const result = await changeMyPassword({
+      await changeMyPassword({
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
@@ -227,7 +227,7 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
         newPassword: "",
         confirmPassword: "",
       });
-      setNotice(result.message || "Password changed successfully.");
+      await onSignOut();
     } catch (requestError) {
       setError(
         requestError.response?.data?.message ||
@@ -578,7 +578,7 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
                     disabled={
                       savingPassword ||
                       !passwordForm.currentPassword ||
-                      passwordForm.newPassword.length < 8 ||
+                      passwordForm.newPassword.length < 12 ||
                       passwordForm.newPassword !== passwordForm.confirmPassword
                     }
                     type="submit"

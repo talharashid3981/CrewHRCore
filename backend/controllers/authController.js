@@ -1,4 +1,3 @@
-import jwt from "jsonwebtoken";
 import { z } from "zod";
 import crypto from "node:crypto";
 import userModel from "../models/User.js";
@@ -6,10 +5,15 @@ import {
   sendPasswordResetEmail,
   sendWelcomeEmail,
 } from "../utils/emailService.js";
+import {
+  authCookieName,
+  authCookieOptions,
+  signAuthToken,
+} from "../utils/sessionSecurity.js";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
-  password: z.string().min(8, "At least 8 characters are required"),
+  password: z.string().min(1, "Password is required").max(128),
   rememberMe: z.boolean().optional().default(true),
 });
 
@@ -20,7 +24,7 @@ const registerSchema = z.object({
     .trim()
     .email("Invalid email format")
     .transform((value) => value.toLowerCase()),
-  password: z.string().min(8, "At least 8 characters are required").max(128),
+  password: z.string().min(12, "Use at least 12 characters for your password").max(128),
   profilePic: z.preprocess(
     (value) => (value === "" ? undefined : value),
     z
@@ -42,22 +46,7 @@ const forgotPasswordSchema = z.object({
 
 const resetPasswordSchema = z.object({
   token: z.string().length(64, "Invalid reset token"),
-  password: z.string().min(8, "At least 8 characters are required").max(128),
-});
-
-const signToken = (id) => {
-  if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is not configured");
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-  });
-};
-
-const cookieOptions = (rememberMe = true) => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  ...(rememberMe ? { maxAge: 7 * 24 * 60 * 60 * 1000 } : {}),
-  path: "/",
+  password: z.string().min(12, "Use at least 12 characters for your password").max(128),
 });
 
 const publicUser = (user) => ({
@@ -107,7 +96,7 @@ export const registerController = async (req, res) => {
       role: "employee",
     });
 
-    res.cookie("token", signToken(user._id.toString()), cookieOptions());
+    res.cookie(authCookieName, signAuthToken(user), authCookieOptions());
 
     void sendWelcomeEmail(user).catch((error) =>
       console.error("Welcome email failed:", error.message),
@@ -147,13 +136,13 @@ export const loginController = async (req, res) => {
 
     const user = await userModel
       .findOne({ email: email.toLowerCase() })
-      .select("+password");
+      .select("+password +tokenVersion");
     if (!user || !user.isActive || !(await user.comparePassword(password))) {
       return res
         .status(401)
         .json({ success: false, message: "Invalid credentials" });
     }
-    res.cookie("token", signToken(user._id.toString()), cookieOptions(rememberMe));
+    res.cookie(authCookieName, signAuthToken(user), authCookieOptions(rememberMe));
     return res.status(200).json({
       success: true,
       message: "Login successful",
@@ -239,7 +228,7 @@ export const resetPasswordController = async (req, res) => {
         resetPasswordExpires: { $gt: new Date() },
         isActive: true,
       })
-      .select("+resetPasswordTokenHash +resetPasswordExpires");
+      .select("+resetPasswordTokenHash +resetPasswordExpires +tokenVersion");
 
     if (!user) {
       return res.status(400).json({
@@ -249,6 +238,7 @@ export const resetPasswordController = async (req, res) => {
     }
 
     user.password = parsed.data.password;
+    user.tokenVersion += 1;
     user.resetPasswordTokenHash = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
@@ -275,6 +265,7 @@ export const getMeController = async (req, res) => {
 };
 
 export const logOutController = async (req, res) => {
-  res.clearCookie("token", cookieOptions(false));
+  res.clearCookie(authCookieName, authCookieOptions(false));
+  res.clearCookie("token", authCookieOptions(false));
   return res.status(200).json({ success: true, message: "Logout successful" });
 };

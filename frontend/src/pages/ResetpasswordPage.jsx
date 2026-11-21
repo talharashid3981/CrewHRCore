@@ -67,7 +67,7 @@ export default function ResetpasswordPage() {
           onChange={(event) => update(event.target.value)}
           placeholder={placeholder}
           autoComplete="new-password"
-          minLength={8}
+          minLength={12}
           aria-invalid={Boolean(error)}
           aria-describedby={label === "New password" ? "password-help" : undefined}
           required
@@ -88,7 +88,7 @@ export default function ResetpasswordPage() {
           id="password-help"
           className="text-[12px] font-normal text-slate-500"
         >
-          Use at least 8 characters.
+          Use at least 12 characters.
         </span>
       )}
     </label>
@@ -118,7 +118,7 @@ export default function ResetpasswordPage() {
           password,
           setPassword,
           "New password",
-          "At least 8 characters",
+          "At least 12 characters",
           "password",
         )}
         {passwordInput(

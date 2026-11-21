@@ -5,6 +5,7 @@ import {
   getSummary, listUsers, exportUsers, inviteEmployee, remindEmployee, getUser, updateUser,
   approveUser, rejectUser, setUserStatus,
 } from "../controllers/userController.js";
+import { inviteLimiter } from "../middleware/security.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.patch("/me/password", changeMyPassword);
 router.use(authorize("admin"));
 router.get("/summary", getSummary);
 router.get("/export", exportUsers);
-router.post("/invite", inviteEmployee);
+router.post("/invite", inviteLimiter, inviteEmployee);
 router.get("/", listUsers);
 router.post("/:id/remind", remindEmployee);
 router.get("/:id", getUser);

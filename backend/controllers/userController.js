@@ -9,6 +9,7 @@ import {
 } from "../utils/emailService.js";
 import officeSettingsModel from "../models/OfficeSettings.js";
 import { shiftSchedulesFrom } from "../utils/shiftSchedules.js";
+import { authCookieName, authCookieOptions } from "../utils/sessionSecurity.js";
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -36,7 +37,7 @@ const profileSchema = z.object({
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "At least 8 characters are required").max(128),
+  newPassword: z.string().min(12, "Use at least 12 characters for your password").max(128),
 }).strict();
 
 const adminUpdateSchema = z.object({
@@ -67,6 +68,14 @@ const validateShiftRange = (shiftStart, shiftEnd) => (
     ? "Shift end time must be later than shift start time"
     : null
 );
+
+const configuredDepartment = async (value) => {
+  const requested = value.trim();
+  const settings = await officeSettingsModel.findOne({ key: "default" }).select("departments").lean();
+  return (settings?.departments || []).find(
+    (department) => department.toLocaleLowerCase() === requested.toLocaleLowerCase(),
+  );
+};
 
 const publicUser = (user) => ({
   id: user._id,
@@ -147,8 +156,16 @@ export const submitOnboarding = async (req, res) => {
     const parsed = onboardingSchema.safeParse(req.body);
     if (!parsed.success) return validationError(res, parsed);
 
+    const department = await configuredDepartment(parsed.data.department);
+    if (!department) {
+      return res.status(400).json({
+        success: false,
+        message: "Select a department configured by an administrator.",
+      });
+    }
+
     req.user.designation = parsed.data.jobTitle;
-    req.user.department = parsed.data.department;
+    req.user.department = department;
     req.user.shift = parsed.data.shift;
     req.user.joiningDate = parsed.data.joiningDate;
     req.user.onboardingStatus = "pending";
@@ -185,7 +202,7 @@ export const changeMyPassword = async (req, res) => {
   try {
     const parsed = passwordSchema.safeParse(req.body);
     if (!parsed.success) return validationError(res, parsed);
-    const user = await userModel.findById(req.user._id).select("+password");
+    const user = await userModel.findById(req.user._id).select("+password +tokenVersion");
     if (!user || !(await user.comparePassword(parsed.data.currentPassword))) {
       return res.status(400).json({ success: false, message: "Current password is incorrect" });
     }
@@ -193,10 +210,12 @@ export const changeMyPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: "New password must be different" });
     }
     user.password = parsed.data.newPassword;
+    user.tokenVersion += 1;
     user.resetPasswordTokenHash = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
-    return res.status(200).json({ success: true, message: "Password changed successfully" });
+    res.clearCookie(authCookieName, authCookieOptions(false));
+    return res.status(200).json({ success: true, message: "Password changed. Please sign in again." });
   } catch (error) {
     console.error("Change password failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
@@ -400,11 +419,19 @@ export const updateUser = async (req, res) => {
     if (!parsed.success) return validationError(res, parsed);
     const user = await userModel.findOne({ _id: req.params.id, role: "employee" });
     if (!user) return notFound(res);
-    const shiftSchedules = parsed.data.shift ? await getConfiguredShiftSchedules() : null;
-    applyAdminFields(user, parsed.data, shiftSchedules);
-    const hasShiftChanges = parsed.data.shift !== undefined
-      || parsed.data.shiftStart !== undefined
-      || parsed.data.shiftEnd !== undefined;
+    const fields = { ...parsed.data };
+    if (fields.department !== undefined) {
+      const department = await configuredDepartment(fields.department);
+      if (!department) {
+        return res.status(400).json({ success: false, message: "Select a department configured in office settings." });
+      }
+      fields.department = department;
+    }
+    const shiftSchedules = fields.shift ? await getConfiguredShiftSchedules() : null;
+    applyAdminFields(user, fields, shiftSchedules);
+    const hasShiftChanges = fields.shift !== undefined
+      || fields.shiftStart !== undefined
+      || fields.shiftEnd !== undefined;
     const rangeError = hasShiftChanges ? validateShiftRange(user.shiftStart, user.shiftEnd) : null;
     if (rangeError) return res.status(400).json({ success: false, message: rangeError });
     await user.save();
@@ -425,8 +452,14 @@ export const approveUser = async (req, res) => {
     if (user.onboardingStatus !== "pending") {
       return res.status(409).json({ success: false, message: "Only pending employees can be approved" });
     }
+    const fields = { ...parsed.data };
+    const department = await configuredDepartment(fields.department ?? user.department ?? "");
+    if (!department) {
+      return res.status(400).json({ success: false, message: "The employee must select a department configured in office settings before approval." });
+    }
+    fields.department = department;
     const shiftSchedules = await getConfiguredShiftSchedules();
-    applyAdminFields(user, parsed.data, shiftSchedules);
+    applyAdminFields(user, fields, shiftSchedules);
     if (!user.shift) user.shift = "AM";
     if (!user.shiftStart) user.shiftStart = shiftSchedules[user.shift].shiftStart;
     if (!user.shiftEnd) user.shiftEnd = shiftSchedules[user.shift].shiftEnd;

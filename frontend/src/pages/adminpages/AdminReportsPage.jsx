@@ -492,7 +492,7 @@ export default function AdminReportsPage() {
                             </span>
                           </button>
                         </td>
-                        <td className="px-3 py-2 text-slate-700">{employee.department || "General"}</td>
+                        <td className="px-3 py-2 text-slate-700">{employee.department || "—"}</td>
                         <td className="px-3 py-2 text-center text-slate-600">{summary.workingDays}</td>
                         <td className="px-3 py-2 text-center font-semibold text-green-700">{summary.present}</td>
                         <td className="px-3 py-2 text-center font-semibold text-amber-800">{summary.late}</td>

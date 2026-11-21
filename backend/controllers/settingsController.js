@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { z } from "zod";
 import officeSettingsModel from "../models/OfficeSettings.js";
+import userModel from "../models/User.js";
 import holidayModel from "../models/Holiday.js";
 import { getKarachiDateString, isValidCalendarDate } from "../utils/calendar.js";
 import { holidayEnd, holidayRangeQuery, holidayStart } from "../utils/holidayCalendar.js";
@@ -11,6 +12,12 @@ const weekendDaysSchema = z.array(z.number().int().min(0).max(6)).max(7).refine(
   (days) => new Set(days).size === days.length,
   "Weekend days must be unique",
 );
+const departmentsSchema = z.array(z.string().trim().min(1, "Department name is required").max(100))
+  .max(100, "A maximum of 100 departments can be configured")
+  .refine(
+    (departments) => new Set(departments.map((department) => department.toLocaleLowerCase())).size === departments.length,
+    "Department names must be unique",
+  );
 
 const officeUpdateSchema = z.object({
   name: z.string().trim().min(1).max(150).optional(),
@@ -23,6 +30,7 @@ const officeUpdateSchema = z.object({
   pmShiftStart: z.string().regex(timeRegex).optional(),
   pmShiftEnd: z.string().regex(timeRegex).optional(),
   weekendDays: weekendDaysSchema.optional(),
+  departments: departmentsSchema.optional(),
   revision: z.number().int().nonnegative().optional(),
 }).strict();
 
@@ -94,6 +102,7 @@ const officeResponse = (settings, includeCoordinates) => {
     pmShiftStart: shifts.PM.shiftStart,
     pmShiftEnd: shifts.PM.shiftEnd,
     weekendDays: settings?.weekendDays || [0, 6],
+    departments: settings?.departments || [],
     isConfigured: Number.isFinite(settings?.latitude) && Number.isFinite(settings?.longitude),
     updatedAt: settings?.updatedAt,
   };
@@ -112,9 +121,13 @@ export const getOnboardingShiftTimes = async (req, res) => {
   }
   try {
     const settings = await officeSettingsModel.findOne({ key: "default" })
-      .select("amShiftStart amShiftEnd pmShiftStart pmShiftEnd")
+      .select("amShiftStart amShiftEnd pmShiftStart pmShiftEnd departments")
       .lean();
-    return res.status(200).json({ success: true, shifts: shiftSchedulesFrom(settings) });
+    return res.status(200).json({
+      success: true,
+      shifts: shiftSchedulesFrom(settings),
+      departments: settings?.departments || [],
+    });
   } catch (error) {
     console.error("Get onboarding shift times failed:", error);
     return res.status(500).json({ success: false, message: "Unable to load current shift times" });
@@ -165,6 +178,24 @@ export const updateOfficeSettings = async (req, res) => {
         success: false,
         message: "Office settings were changed by another administrator. Reload the latest settings before saving.",
       });
+    }
+    if (parsed.data.departments && settings?.departments?.length) {
+      const configuredDepartments = new Set(parsed.data.departments.map((department) => department.toLocaleLowerCase()));
+      const removedDepartments = settings.departments.filter(
+        (department) => !configuredDepartments.has(department.toLocaleLowerCase()),
+      );
+      if (removedDepartments.length) {
+        const assignedDepartment = await userModel.findOne({
+          role: "employee",
+          department: { $in: removedDepartments },
+        }).select("department").lean();
+        if (assignedDepartment) {
+          return res.status(409).json({
+            success: false,
+            message: `Cannot remove ${assignedDepartment.department} while employees are assigned to it. Reassign those employees first.`,
+          });
+        }
+      }
     }
     const shifts = shiftSchedulesFrom({
       amShiftStart: officeFields.amShiftStart ?? settings?.amShiftStart,

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Bell,
   CalendarDays,
   Clock3,
   LayoutDashboard,
@@ -244,14 +243,6 @@ function DashboardHeader({
         </p>
       </div>
       <div className="flex items-center gap-3 self-start sm:self-auto">
-        <span
-          aria-label="Notifications"
-          className="relative grid h-10 w-10 place-items-center rounded-lg border border-[#E9E5F7] bg-white text-slate-600 shadow-sm"
-          role="img"
-        >
-          <Bell size={17} />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-violet-500" />
-        </span>
         <div className="flex items-center gap-2 rounded-full border border-[#E9E5F7] bg-white py-1 pl-1 pr-3 shadow-sm">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-purple-800 font-['Poppins',sans-serif] text-[12px] font-semibold text-white">
             {initials(user?.name)}

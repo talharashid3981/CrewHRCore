@@ -133,7 +133,8 @@ export const dashboardAdmin = async (req, res) => {
     const expected = dayType === "working" ? expectedRows.length : 0;
     const departmentMap = new Map();
     for (const { employee, resolved } of expectedRows) {
-      const name = employee.department || "General";
+      const name = employee.department;
+      if (!name) continue;
       const department = departmentMap.get(name) || { name, total: 0, checkedIn: 0 };
       department.total += 1;
       if (["present", "late"].includes(resolved?.status)) department.checkedIn += 1;

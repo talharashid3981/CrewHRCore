@@ -30,6 +30,7 @@ const defaultOffice = {
   pmShiftStart: "11:00",
   pmShiftEnd: "20:00",
   weekendDays: [0, 6],
+  departments: [],
 };
 
 const weekDays = [
@@ -53,6 +54,7 @@ const toForm = (settings = {}) => ({
   pmShiftStart: settings.pmShiftStart || defaultOffice.pmShiftStart,
   pmShiftEnd: settings.pmShiftEnd || defaultOffice.pmShiftEnd,
   weekendDays: [...(settings.weekendDays || defaultOffice.weekendDays)].sort((a, b) => a - b),
+  departments: [...(settings.departments || defaultOffice.departments)].sort((a, b) => a.localeCompare(b)),
 });
 
 const coordinateValue = (value) => value === "" ? null : Number(value);
@@ -112,6 +114,9 @@ const validationMessage = (office) => {
     if (start >= end) return `The ${label} shift end time must be later than its start time.`;
   }
   if (new Set(office.weekendDays).size !== office.weekendDays.length) return "Weekend days must be unique.";
+  if (office.departments.length > 100) return "A maximum of 100 departments can be configured.";
+  if (office.departments.some((department) => !department.trim() || department.length > 100)) return "Department names must be between 1 and 100 characters.";
+  if (new Set(office.departments.map((department) => department.toLocaleLowerCase())).size !== office.departments.length) return "Department names must be unique.";
   return "";
 };
 
@@ -184,6 +189,7 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
   const [error, setError] = useState("");
   const [shiftError, setShiftError] = useState("");
   const [notice, setNotice] = useState("");
+  const [departmentDraft, setDepartmentDraft] = useState("");
   useToastMessage(error, "error");
   useToastMessage(shiftError, "error");
   useToastMessage(notice, "success");
@@ -257,6 +263,7 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
     if (office.amShiftStart !== savedOffice.amShiftStart || office.amShiftEnd !== savedOffice.amShiftEnd) changes.push("AM shift times");
     if (office.pmShiftStart !== savedOffice.pmShiftStart || office.pmShiftEnd !== savedOffice.pmShiftEnd) changes.push("PM shift times");
     if (!sameArray(office.weekendDays, savedOffice.weekendDays)) changes.push("weekend days");
+    if (!sameArray(office.departments, savedOffice.departments)) changes.push("departments");
     return changes;
   }, [office, savedOffice]);
   const hasChanges = changedFields.length > 0;
@@ -281,6 +288,25 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
     }));
     if (!saveConflict) setError("");
     setNotice("");
+  };
+
+  const addDepartment = () => {
+    const department = departmentDraft.trim().replace(/\s+/g, " ");
+    if (!department) return;
+    if (department.length > 100) {
+      setError("Department names must be 100 characters or fewer.");
+      return;
+    }
+    if (office.departments.some((item) => item.toLocaleLowerCase() === department.toLocaleLowerCase())) {
+      setError("That department has already been added.");
+      return;
+    }
+    updateField("departments", [...office.departments, department].sort((first, second) => first.localeCompare(second)));
+    setDepartmentDraft("");
+  };
+
+  const removeDepartment = (department) => {
+    updateField("departments", office.departments.filter((item) => item !== department));
   };
 
   const useCurrentLocation = () => {
@@ -350,6 +376,7 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
         pmShiftStart: office.pmShiftStart,
         pmShiftEnd: office.pmShiftEnd,
         weekendDays: office.weekendDays,
+        departments: office.departments,
         revision: savedMeta.revision,
       });
       if (!result.settings) {
@@ -471,6 +498,53 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
                     {locating ? <LoaderCircle className="animate-spin" size={16} /> : <MapPin size={16} />}
                     {locating ? "Finding current location…" : "Use my current location"}
                   </button>
+                </>
+              )}
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,.045)]">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold text-slate-900">Departments</h2>
+                  <p className="mt-1 text-[13px] leading-[1.5] text-slate-600">Employees can only choose departments configured here during onboarding.</p>
+                </div>
+                <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-800">{office.departments.length} configured</span>
+              </div>
+              {loading ? <div className="mt-3"><SettingsSkeleton /></div> : !officeLoaded ? (
+                <LoadFailure onRetry={load} />
+              ) : (
+                <>
+                  <div className="mt-3 flex gap-2">
+                    <input
+                      aria-label="New department name"
+                      className="h-10 min-w-0 flex-1 rounded-xl border border-slate-400 bg-[#FBFAFF] px-3 text-[14px] text-slate-800 outline-none transition placeholder:text-slate-500 focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15"
+                      maxLength={100}
+                      placeholder="e.g. Operations"
+                      value={departmentDraft}
+                      onChange={(event) => setDepartmentDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addDepartment();
+                        }
+                      }}
+                    />
+                    <button type="button" onClick={addDepartment} className="h-10 rounded-xl border border-violet-300 bg-white px-3 text-[13px] font-semibold text-violet-800 transition hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600">Add</button>
+                  </div>
+                  {office.departments.length ? (
+                    <ul className="mt-3 flex flex-wrap gap-2" aria-label="Configured departments">
+                      {office.departments.map((department) => (
+                        <li className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 py-1 pl-2.5 pr-1 text-[13px] font-semibold text-violet-900" key={department}>
+                          {department}
+                          <button type="button" onClick={() => removeDepartment(department)} className="grid size-6 place-items-center rounded-md text-violet-800 transition hover:bg-violet-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600" aria-label={`Remove ${department}`} title={`Remove ${department}`}>
+                            <X size={14} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 rounded-xl bg-amber-50 px-3 py-3 text-[13px] leading-[1.5] text-amber-800">Add at least one department before employees can complete onboarding.</p>
+                  )}
                 </>
               )}
             </section>
@@ -640,6 +714,7 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
               {changedFields.includes("AM shift times") && <ChangeRow label="AM shift hours" before={`${savedOffice.amShiftStart}–${savedOffice.amShiftEnd}`} after={`${office.amShiftStart}–${office.amShiftEnd}`} />}
               {changedFields.includes("PM shift times") && <ChangeRow label="PM shift hours" before={`${savedOffice.pmShiftStart}–${savedOffice.pmShiftEnd}`} after={`${office.pmShiftStart}–${office.pmShiftEnd}`} />}
               {changedFields.includes("weekend days") && <ChangeRow label="Weekend days" before={weekendLabel(savedOffice.weekendDays)} after={weekendLabel(office.weekendDays)} />}
+              {changedFields.includes("departments") && <ChangeRow label="Departments" before={savedOffice.departments.join(", ") || "None"} after={office.departments.join(", ") || "None"} />}
             </div>
 
             <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-[13px] leading-[1.5] text-amber-800">
