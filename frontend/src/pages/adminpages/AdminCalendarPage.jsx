@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bell,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -292,7 +291,7 @@ export default function AdminCalendarPage() {
           <Plus size={16} />Add holiday
         </button>
         <span aria-label={`${upcomingHolidays.length} upcoming holidays`} title={`${upcomingHolidays.length} upcoming holidays`} className="relative grid size-10 place-items-center rounded-xl border border-slate-300 bg-white text-slate-600">
-        <Bell size={17} />
+        <CalendarDays size={17} />
         {upcomingHolidays.length > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-red-700" />}
         </span>
         <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3">
@@ -302,11 +301,11 @@ export default function AdminCalendarPage() {
       </div>
     </header>
 
-    <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,.95fr)]">
+    <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,.95fr)]">
       <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,.045)] sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-['Poppins',sans-serif] text-xl font-semibold tracking-[-.3px] text-slate-900">{month.format("MMMM YYYY")}</h2>
-          <div className="flex items-center gap-1.5">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
             <button type="button" onClick={() => shiftMonth(-1)} aria-label="Previous month" className="grid size-9 place-items-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600"><ChevronLeft size={17} /></button>
             <button type="button" onClick={() => shiftMonth(1)} aria-label="Next month" className="grid size-9 place-items-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600"><ChevronRight size={17} /></button>
             <button type="button" onClick={goToToday} className="h-9 rounded-lg border border-violet-200 bg-violet-50 px-3 text-[13px] font-semibold text-violet-800 transition hover:bg-violet-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600">Today</button>
@@ -322,11 +321,11 @@ export default function AdminCalendarPage() {
           <SummaryPill color="slate" value={weekendCount} label="weekend days" />
         </div>
 
-        {view === "month" ? <div className="mt-3">
-          <div className="grid grid-cols-7">
+        {view === "month" ? <div className="mt-3 min-w-0 overflow-x-auto">
+          <div className="grid min-w-[252px] grid-cols-7">
             {weekdays.map((day) => <div key={day} className="px-2 py-2 text-xs font-semibold text-slate-600">{day}</div>)}
           </div>
-          <div className="grid grid-cols-7 overflow-hidden rounded-xl border-l border-t border-slate-100">
+          <div className="grid min-w-[252px] grid-cols-7 overflow-hidden rounded-xl border-l border-t border-slate-100">
             {calendarCells.map((cell) => <button
               type="button"
               key={cell.key}
@@ -365,9 +364,9 @@ export default function AdminCalendarPage() {
 
       <aside className="grid min-w-0 gap-3.5">
         <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,.045)] sm:p-5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2"><CalendarDays size={18} className="text-violet-800" /><h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold text-slate-900">Holidays</h2></div>
-            <label className="relative">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2"><CalendarDays size={18} className="shrink-0 text-violet-800" /><h2 className="min-w-0 font-['Poppins',sans-serif] text-[18px] font-semibold text-slate-900">Holidays</h2></div>
+            <label className="relative shrink-0">
               <span className="sr-only">Calendar year</span>
               <select value={year} onChange={(event) => { const nextMonth = month.year(Number(event.target.value)); setMonth(nextMonth); setSelectedDate(keyForDate(nextMonth.startOf("month"))); }} className="h-10 appearance-none rounded-lg border border-slate-400 bg-[#FBFAFF] py-1 pl-3 pr-8 text-[16px] font-medium text-slate-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]">
                 {Array.from({ length: 9 }, (_, index) => dayjs().tz(timeZone).year() - 3 + index).map((optionYear) => <option key={optionYear} value={optionYear}>{optionYear}</option>)}
@@ -380,7 +379,7 @@ export default function AdminCalendarPage() {
           </div>
         </section>
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,.045)] sm:p-5">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 max-[250px]:flex-wrap">
             <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold text-slate-900">Working-day rules</h2>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-800"><LockKeyhole size={14} />Office settings</span>
           </div>

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import {
   AlertCircle,
-  Bell,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -44,7 +44,7 @@ const correctionReasons = [
   ["manual_adjustment", "Manual adjustment"],
 ];
 
-export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, onNavigate }) {
+export default function AdminAttendanceAutomationPage({ user, onNavigate }) {
   const [today] = useState(getKarachiToday);
   const [date, setDate] = useState(today);
   const [search, setSearch] = useState("");
@@ -59,7 +59,7 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
   useToastMessage(error, "error");
   useToastMessage(
     notice,
-    notice.toLowerCase().includes("up to date") ? "info" : "success",
+    notice.toLowerCase().includes("up to date") || notice.toLowerCase().includes("already running") ? "info" : "success",
   );
   const [exporting, setExporting] = useState(false);
   const [runOpen, setRunOpen] = useState(false);
@@ -130,9 +130,15 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
     try {
       const result = await runAttendanceAutomation();
       const run = result.result || {};
-      setNotice(run.skipped
-        ? run.message || "Automation is already up to date."
-        : `Daily close completed for ${formatShortDate(run.from)}${run.to && run.to !== run.from ? `–${formatShortDate(run.to)}` : ""}.`);
+      if (run.reason === "up_to_date" || run.message === "No closed days to process") {
+        setNotice(`Attendance is up to date through ${formatShortDate(run.throughDate || shiftDate(today, -1))}. No records were changed.`);
+      } else if (run.reason === "already_running") {
+        setNotice("Attendance automation is already running. Wait for it to finish before starting another run.");
+      } else if (run.skipped) {
+        setNotice(run.message || "Attendance automation did not run. No records were changed.");
+      } else {
+        setNotice(`Attendance close completed for ${formatShortDate(run.from)}${run.to && run.to !== run.from ? `–${formatShortDate(run.to)}` : ""}.`);
+      }
       setRunOpen(false);
       setLoading(true);
       setRefreshKey((key) => key + 1);
@@ -182,7 +188,8 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
   const stats = [
     { key: "present", label: "Present", value: summary?.present || 0, color: "bg-green-700" },
     { key: "late", label: "Late", value: summary?.late || 0, color: "bg-amber-700" },
-    { key: "notCheckedIn", label: "Not checked in", value: summary?.notCheckedIn || 0, color: "bg-slate-400" },
+    { key: "absent", label: "Absent", value: summary?.absent || 0, color: "bg-red-700" },
+    { key: "notCheckedIn", label: "Not checked in", value: summary?.pending || 0, color: "bg-slate-400" },
     { key: "leave", label: "On leave", value: summary?.leave || 0, color: "bg-violet-600" },
   ];
   const totalStatCount = stats.reduce((total, item) => total + item.value, 0);
@@ -198,20 +205,16 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white p-1 shadow-sm">
-          <button type="button" onClick={() => moveDate(-1)} aria-label="Previous day" className="grid size-8 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600"><ChevronLeft size={16} /></button>
+          <button type="button" onClick={() => moveDate(-1)} aria-label="Previous day" className="grid size-8 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600 max-[250px]:hidden"><ChevronLeft size={16} /></button>
           <label className="flex min-w-0 items-center gap-1.5 px-1">
             <CalendarDays size={16} className="shrink-0 text-violet-800" />
             <input aria-label="Attendance date" className="w-[132px] border-0 bg-transparent p-0 text-[16px] font-medium text-slate-800 outline-none sm:text-[14px]" type="date" max={today} value={date} onChange={(event) => selectDate(event.target.value)} />
           </label>
-          <button type="button" onClick={() => moveDate(1)} disabled={date >= today} aria-label="Next day" className="grid size-8 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600 disabled:cursor-not-allowed disabled:opacity-30"><ChevronRight size={16} /></button>
+          <button type="button" onClick={() => moveDate(1)} disabled={date >= today} aria-label="Next day" className="grid size-8 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600 disabled:cursor-not-allowed disabled:opacity-30 max-[250px]:hidden"><ChevronRight size={16} /></button>
         </div>
         <button type="button" onClick={downloadCsv} disabled={exporting || loading} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:border-violet-300 hover:bg-violet-50/60 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:opacity-60">
           {exporting ? <LoaderCircle size={16} className="animate-spin text-violet-800" /> : <Download size={16} className="text-violet-800" />}
           Export
-        </button>
-        <button type="button" onClick={() => onNavigate?.(pendingCount ? "Leaves" : "Overview")} aria-label={pendingCount ? `View ${pendingCount} pending notifications` : "View notifications and alerts"} className="relative grid size-10 place-items-center rounded-xl border border-slate-300 bg-white text-slate-600 shadow-sm transition hover:border-violet-300 hover:bg-violet-50/60 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600">
-          <Bell size={17} />
-          {pendingCount > 0 && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-700 ring-2 ring-white" />}
         </button>
         <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
           <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(user?.name)}</span>
@@ -222,14 +225,14 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
 
     <div className="mb-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,.98fr)]">
       <section className="min-w-0 rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-[0_8px_24px_rgba(15,23,42,.045)]">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">{date === today ? "Today" : formatShortDate(date)}</h2>
-          <p className="text-right text-xs text-slate-600">{summary?.totalEmployees ?? "—"} active employees <span className="text-slate-500">·</span> {summary?.updatedAt ? `updated ${formatClock(summary.updatedAt)}` : "no attendance updates"}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="min-w-0 font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">{date === today ? "Today" : formatShortDate(date)}</h2>
+          <p className="min-w-0 text-right text-xs text-slate-600">{summary?.totalEmployees ?? "—"} active employees <span className="text-slate-500">·</span> {summary?.updatedAt ? `updated ${formatClock(summary.updatedAt)}` : "no attendance updates"}</p>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-2">
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5 sm:gap-2">
           {stats.map((item) => <div key={item.key} className="min-w-0">
-            <p className="flex items-center gap-1.5 truncate text-[13px] text-slate-600"><i className={`size-2 shrink-0 rounded-full ${item.color}`} />{item.label}</p>
-            <p className="mt-1 font-['Poppins',sans-serif] text-2xl font-semibold leading-none tracking-[-.4px] text-slate-900">{loading && !summary ? "—" : item.value}</p>
+            <p className="flex flex-wrap items-center gap-1.5 text-[13px] leading-4 text-slate-600"><i className={`size-2 shrink-0 rounded-full ${item.color}`} />{item.label}</p>
+            <p className="mt-1 font-['Poppins',sans-serif] text-2xl font-semibold leading-none tracking-[-.4px] text-slate-900">{(loading || error) && !summary ? "—" : item.value}</p>
           </div>)}
         </div>
         <div className="mt-3 flex h-[7px] overflow-hidden rounded-full bg-slate-100" aria-label="Daily attendance distribution">
@@ -238,8 +241,8 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
       </section>
 
       <section className="min-w-0 rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-[0_8px_24px_rgba(15,23,42,.045)]">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Attendance automation</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="min-w-0 font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Attendance automation</h2>
           <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${automation?.isHealthy ? "border-green-200 bg-green-50 text-green-700" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
             <AutomationStatusIcon size={14} />{automation?.isHealthy ? "Healthy" : automation ? "Needs attention" : "Not run"}
           </span>
@@ -261,23 +264,23 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
       </section>
     </div>
 
-    <div className="grid min-w-0 gap-4 min-[1200px]:grid-cols-[minmax(0,1.78fr)_minmax(270px,.82fr)]">
-      <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,.045)]">
-        <div className="flex flex-col gap-2.5 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+    <div className="grid min-w-0 gap-4 min-[1366px]:grid-cols-[minmax(0,1.78fr)_minmax(270px,.82fr)]">
+      <section className="@container/attendance-log min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,.045)]">
+        <div className="flex flex-col gap-2.5 border-b border-slate-100 px-4 py-3 @min-[820px]/attendance-log:flex-row @min-[820px]/attendance-log:items-center @min-[820px]/attendance-log:justify-between sm:px-4">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Daily log</h2>
-            <p className="text-right text-xs text-slate-600 sm:text-left">Recorded by shows who created each record</p>
+            <p className="text-right text-xs text-slate-600 sm:text-left">Open a row for times and record source</p>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            <label className="relative min-w-[145px] flex-1 sm:w-[170px] sm:flex-none">
+          <div className="grid min-w-0 gap-1.5 @min-[460px]/attendance-log:grid-cols-2 @min-[820px]/attendance-log:grid-cols-3 @min-[820px]/attendance-log:flex-1">
+            <label className="relative min-w-0 @min-[460px]/attendance-log:col-span-2 @min-[820px]/attendance-log:col-span-1">
               <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-violet-800" />
               <input value={search} onChange={(event) => setFilter(setSearch)(event.target.value)} placeholder="Search employee" className="h-11 w-full rounded-xl border border-slate-400 bg-[#FBFAFF] pl-9 pr-3 text-[16px] text-slate-800 outline-none transition placeholder:text-slate-500 focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]" />
             </label>
-            <select aria-label="Filter by department" value={department} onChange={(event) => setFilter(setDepartment)(event.target.value)} className="h-11 max-w-[180px] rounded-xl border border-slate-400 bg-[#FBFAFF] px-3 text-[16px] text-slate-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]">
+            <select aria-label="Filter by department" value={department} onChange={(event) => setFilter(setDepartment)(event.target.value)} className="h-11 min-w-0 w-full rounded-xl border border-slate-400 bg-[#FBFAFF] px-3 text-[16px] text-slate-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]">
               <option value="">Department: All</option>
               {(data?.departments || []).map((item) => <option key={item} value={item}>Department: {item}</option>)}
             </select>
-            <select aria-label="Filter by attendance status" value={status} onChange={(event) => setFilter(setStatus)(event.target.value)} className="h-11 rounded-xl border border-slate-400 bg-[#FBFAFF] px-3 text-[16px] text-slate-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]">
+            <select aria-label="Filter by attendance status" value={status} onChange={(event) => setFilter(setStatus)(event.target.value)} className="h-11 min-w-0 w-full rounded-xl border border-slate-400 bg-[#FBFAFF] px-3 text-[16px] text-slate-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]">
               <option value="">Status: All</option>
               {Object.keys(statusStyles).map((item) => <option key={item} value={item}>Status: {statusLabel(item)}</option>)}
             </select>
@@ -286,13 +289,13 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
 
         <div className="px-3 pb-2 sm:px-4">
           {loading && !data ? <LoadingRows /> : data?.rows?.length ? <>
-            <div className="space-y-2 py-2 min-[1200px]:hidden">
+            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 @min-[820px]/attendance-log:hidden">
               {data.rows.map((row) => <AttendanceMobileCard key={row.employee.id} row={row} onCorrect={() => openCorrection(row)} />)}
             </div>
-            <div className="hidden overflow-x-auto min-[1200px]:block">
-              <table className="w-full min-w-[630px] border-separate border-spacing-0 text-left">
+            <div className="hidden overflow-x-auto @min-[820px]/attendance-log:block">
+              <table className="w-full min-w-[700px] border-separate border-spacing-0 text-left">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-violet-50/60 text-xs font-semibold text-slate-700">
+                  <tr className="whitespace-nowrap border-b border-slate-200 bg-violet-50/60 text-xs font-semibold text-slate-700">
                     <th className="px-1.5 py-2.5">Employee</th>
                     <th className="px-1.5 py-2.5">Check in</th>
                     <th className="px-1.5 py-2.5">Check out</th>
@@ -320,7 +323,13 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
                 </tbody>
               </table>
             </div>
-          </> : <EmptyState title="No attendance records found" description="Try a different date or clear the selected filters." />}
+          </> : error && !data ? <div className="grid min-h-32 place-items-center px-4 text-center" role="alert">
+            <div>
+              <p className="text-[13px] font-semibold text-slate-800">Attendance could not be loaded</p>
+              <p className="mt-1 text-xs text-slate-600">{error}</p>
+              <button type="button" onClick={() => { setLoading(true); setRefreshKey((key) => key + 1); }} className="mt-3 rounded-lg bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800 transition hover:bg-violet-100">Try again</button>
+            </div>
+          </div> : data?.summary?.totalEmployees === 0 ? <EmptyState title="No eligible employees for this date" description="An active employee account with approved onboarding is required to show attendance." /> : <EmptyState title="No attendance records found" description="Try a different date or clear the selected filters." />}
 
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 py-2.5">
             <p className="text-xs text-slate-600">{showingRows(data?.pagination)}</p>
@@ -336,11 +345,11 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
         </div>
       </section>
 
-      <aside className="grid min-w-0 content-start gap-3.5 lg:grid-cols-2 min-[1200px]:grid-cols-1">
-        <section className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white p-3.5 shadow-[0_5px_18px_rgba(15,23,42,.035)] lg:col-span-2 min-[1200px]:col-span-1">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5"><span className="grid size-9 place-items-center rounded-lg bg-amber-50 text-amber-700"><Clock3 size={17} /></span><h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Missing check-outs</h2></div>
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">{summary?.openMissingCheckOutCount ?? 0} to review</span>
+      <aside className="grid min-w-0 content-start gap-3.5 lg:grid-cols-2 min-[1366px]:!grid-cols-1">
+        <section className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white p-3.5 shadow-[0_5px_18px_rgba(15,23,42,.035)]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2.5"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-700"><Clock3 size={17} /></span><h2 className="min-w-0 font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Missing check-outs</h2></div>
+            <span className="shrink-0 whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">{summary?.openMissingCheckOutCount ?? 0} to review</span>
           </div>
           <div className="mt-3 flex rounded-[10px] border border-slate-100 bg-slate-50 p-1">
             <button type="button" onClick={() => setMissingTab("yesterday")} className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${missingTab === "yesterday" ? "bg-white text-violet-800 shadow-sm" : "text-slate-600 hover:text-violet-800"}`}>Yesterday · {summary?.yesterdayMissingCheckOutCount ?? 0}</button>
@@ -356,20 +365,20 @@ export default function AdminAttendanceAutomationPage({ user, pendingCount = 0, 
         </section>
 
         <section className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white p-3.5 shadow-[0_5px_18px_rgba(15,23,42,.035)]">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5"><span className="grid size-9 place-items-center rounded-lg bg-violet-100 text-violet-800"><Shield size={17} /></span><h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Recent corrections</h2></div>
-            <button type="button" onClick={() => setLogOpen(true)} className="rounded-lg px-2 py-1 text-[13px] font-semibold text-violet-800 transition hover:bg-violet-50 hover:text-violet-950">Audit trail</button>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2.5"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-800"><Shield size={17} /></span><h2 className="min-w-0 font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Automation &amp; corrections</h2></div>
+            <button type="button" onClick={() => setLogOpen(true)} className="shrink-0 rounded-lg px-2 py-1 text-[13px] font-semibold text-violet-800 transition hover:bg-violet-50 hover:text-violet-950">View audit trail</button>
           </div>
           <div className="mt-2.5 space-y-1.5">
-            {data?.activities?.length ? data.activities.slice(0, 3).map((activity) => <ActivityRow key={activity.id} activity={activity} />) : <p className="rounded-lg bg-slate-50 px-3 py-4 text-center text-[13px] text-slate-600">No corrections or automation runs recorded for this period.</p>}
+            {data?.activities?.length ? activityPreview(data.activities).map((activity) => <ActivityRow key={activity.id} activity={activity} />) : <p className="rounded-lg bg-slate-50 px-3 py-4 text-center text-[13px] text-slate-600">No corrections or automation runs recorded for this period.</p>}
           </div>
         </section>
       </aside>
     </div>
 
     {runOpen && <Modal title="Run attendance automation" icon={<RefreshCw size={16} />} onClose={() => !running && setRunOpen(false)}>
-      <p className="text-[14px] leading-[1.5] text-slate-600">Run the daily close for unprocessed completed days through <b className="text-slate-800">{formatShortDate(shiftDate(today, -1))}</b>. It will not create records for today or future dates.</p>
-      <p className="mt-3 rounded-xl bg-violet-50 px-3 py-3 text-[13px] leading-[1.5] text-violet-800">Existing employee check-ins, check-outs, and administrator corrections are preserved. Backlogs are processed in ranges of up to 31 days.</p>
+      <p className="text-[14px] leading-[1.5] text-slate-600">Run now closes attendance for eligible employees on completed dates the system has not processed yet. It only works through <b className="text-slate-800">{formatShortDate(shiftDate(today, -1))}</b>—never today or future dates.</p>
+      <p className="mt-3 rounded-xl bg-violet-50 px-3 py-3 text-[13px] leading-[1.5] text-violet-800">For a weekday without an attendance record, it creates a system status such as Absent, Leave, or Holiday. Existing check-ins, check-outs, and admin corrections are kept. If everything through yesterday is already closed, nothing changes and you will see an “up to date” message. Backlogs are processed up to 31 calendar days per run; run it again to continue.</p>
       <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <button type="button" onClick={() => setRunOpen(false)} className="h-10 rounded-lg border border-slate-300 px-4 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50">Cancel</button>
         <button type="button" onClick={runAutomation} disabled={running} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[linear-gradient(90deg,#6A0DAD_0%,#7C3AED_100%)] px-4 font-['Poppins',sans-serif] text-[15px] font-semibold text-white transition hover:brightness-105 disabled:opacity-60">{running ? <LoaderCircle size={16} className="animate-spin" /> : <Play size={14} fill="currentColor" />}{running ? "Running..." : "Run now"}</button>
@@ -405,17 +414,34 @@ function RulePill({ icon: Icon, children }) {
 }
 
 function AttendanceMobileCard({ row, onCorrect }) {
-  return <article className="rounded-xl border border-slate-200 bg-white p-4">
-    <div className="flex items-start justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-2"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(row.employee.name)}</span><div className="min-w-0"><p className="truncate text-[13px] font-semibold text-slate-800">{row.employee.name}</p><p className="truncate text-xs text-slate-600">{row.department}</p></div></div>
+  const [expanded, setExpanded] = useState(false);
+  const hasAttendanceDetails = Boolean(row.checkIn || row.checkOut || row.missingCheckOut || row.status === "leave" || row.leaveDays > 0 || (row.workedMinutes !== null && row.workedMinutes !== undefined));
+  const hasFooterContent = row.source || (row.missingCheckOut && row.attendanceId);
+  const detailsId = `attendance-row-${row.employee.id}`;
+  const compactSummary = row.missingCheckOut
+    ? "Checkout missing"
+    : row.checkIn
+      ? `In ${formatTime(row.checkIn)}`
+      : row.status === "leave"
+        ? row.leaveType
+        : "";
+
+  return <article className="px-2">
+    <button type="button" aria-expanded={expanded} aria-controls={detailsId} aria-label={`${expanded ? "Hide" : "Show"} attendance details for ${row.employee.name}`} onClick={() => setExpanded((value) => !value)} className="flex min-h-12 w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-violet-50/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600">
+      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(row.employee.name)}</span>
+      <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-slate-800">{row.employee.name}</span><span className="block truncate text-xs text-slate-600">{row.department}</span></span>
+      {compactSummary && <span className="hidden max-w-24 shrink-0 truncate text-xs text-slate-600 @min-[540px]/attendance-log:inline">{compactSummary}</span>}
       <StatusBadge status={row.status} />
+      <ChevronDown size={16} className={`shrink-0 text-slate-500 transition-transform ${expanded ? "rotate-180" : ""}`} />
+    </button>
+    <div id={detailsId} hidden={!expanded} className="border-t border-slate-100 px-1 pb-2 pt-2">
+      {hasAttendanceDetails ? <div className="grid grid-cols-3 gap-2">
+        <MiniField label="Check in" value={formatTime(row.checkIn)} />
+        <MiniField label="Check out" value={row.missingCheckOut ? "Missing" : formatTime(row.checkOut)} />
+        <MiniField label={row.leaveDays > 0 ? `${row.leaveDays}d leave` : "Worked"} value={row.status === "leave" ? row.leaveType || "Leave" : formatDuration(row.workedMinutes)} />
+      </div> : <p className="text-xs text-slate-600">No time entry recorded for this date.</p>}
+      {hasFooterContent && <div className="mt-2 flex items-center justify-between"><RecordedBy source={row.source} />{row.missingCheckOut && row.attendanceId && <button type="button" onClick={onCorrect} className="rounded-lg bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-800 transition hover:bg-violet-100">Fix check-out</button>}</div>}
     </div>
-    <div className="mt-2.5 grid grid-cols-3 gap-2 border-t border-slate-50 pt-2">
-      <MiniField label="Check in" value={formatTime(row.checkIn)} />
-      <MiniField label="Check out" value={row.missingCheckOut ? "Missing" : formatTime(row.checkOut)} />
-      <MiniField label={row.leaveDays > 0 ? `${row.leaveDays}d leave` : "Worked"} value={row.status === "leave" ? row.leaveType || "Leave" : formatDuration(row.workedMinutes)} />
-    </div>
-    <div className="mt-3 flex items-center justify-between"><RecordedBy source={row.source} />{row.missingCheckOut && row.attendanceId && <button type="button" onClick={onCorrect} className="rounded-lg bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800 transition hover:bg-violet-100">Fix</button>}</div>
   </article>;
 }
 
@@ -424,7 +450,7 @@ function MiniField({ label, value }) {
 }
 
 function StatusBadge({ status }) {
-  return <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusStyles[status] || statusStyles.pending}`}>{statusLabel(status)}</span>;
+  return <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusStyles[status] || statusStyles.pending}`}>{statusLabel(status)}</span>;
 }
 
 function RecordedBy({ source }) {
@@ -438,14 +464,33 @@ function RecordedBy({ source }) {
   return <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${item.color}`}><Icon size={14} />{item.label}</span>;
 }
 
+function activityPreview(activities) {
+  let hasUpToDateRun = false;
+  return activities.filter((activity) => {
+    const message = activity.message?.toLowerCase() || "";
+    const isUpToDateRun = activity.type === "automation"
+      && activity.status === "no_op"
+      && (message.includes("already closed through") || message === "no closed days to process");
+    if (!isUpToDateRun) return true;
+    if (hasUpToDateRun) return false;
+    hasUpToDateRun = true;
+    return true;
+  }).slice(0, 3);
+}
+
 function ActivityRow({ activity, detailed = false }) {
   const isAutomation = activity.type === "automation";
   const failed = isAutomation && activity.status === "failed";
+  const noOpMessage = activity.message?.toLowerCase() || "";
   const title = isAutomation
     ? failed
       ? "Attendance automation failed"
       : activity.status === "no_op"
-        ? "Automation found no completed days to process"
+        ? noOpMessage.includes("running")
+          ? "Another attendance close is already running"
+          : noOpMessage.includes("closed through") || noOpMessage === "no closed days to process"
+            ? "Attendance is already up to date; no records changed"
+            : "Attendance automation did not run; no records changed"
         : `Automation processed ${activity.processedRows || 0} attendance records`
     : `${activity.actor} set ${activity.employee}’s check-out to ${formatTime(activity.correctedCheckOut)}`;
   const subtitle = isAutomation

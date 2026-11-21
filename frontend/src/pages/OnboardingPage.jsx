@@ -107,6 +107,10 @@ export default function OnboardingPage() {
   const submit = async (event) => {
     event.preventDefault();
     setError("");
+    if (!form.joiningDate) {
+      setError("Joining date is required");
+      return;
+    }
     setSaving(true);
     try {
       const data = await submitOnboarding(form);

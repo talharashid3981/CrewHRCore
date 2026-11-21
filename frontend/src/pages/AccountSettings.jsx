@@ -540,12 +540,12 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
                     visible={visiblePasswords.confirm}
                   />
                 </div>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="mt-4 flex min-w-0 flex-col gap-3 @min-[520px]/account:flex-row @min-[520px]/account:flex-wrap @min-[520px]/account:items-center @min-[520px]/account:justify-between">
                   <div
                     aria-label={`Password strength: ${strength.label}`}
-                    className="flex min-w-0 flex-1 items-center gap-2"
+                    className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 @min-[520px]/account:flex-1"
                   >
-                    <div aria-hidden="true" className="flex gap-1">
+                    <div aria-hidden="true" className="flex shrink-0 gap-1">
                       {[0, 1, 2, 3].map((item) => (
                         <span
                           className={`h-1.5 w-8 rounded-full ${
@@ -561,7 +561,7 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
                         />
                       ))}
                     </div>
-                    <span className="text-[13px] font-semibold text-violet-800">
+                    <span className="min-w-0 basis-full text-[13px] font-semibold leading-4 text-violet-800 @min-[520px]/account:basis-auto @min-[520px]/account:whitespace-nowrap">
                       {strength.label}
                     </span>
                     <span className="hidden items-center gap-1 text-[12px] text-slate-600 sm:inline-flex">
@@ -574,7 +574,7 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
                     </span>
                   </div>
                   <button
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#6A0DAD] to-[#7C3AED] px-4 text-[13px] font-semibold text-white shadow-[0_8px_18px_rgba(106,13,173,0.22)] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-gradient-to-r from-[#6A0DAD] to-[#7C3AED] px-4 text-[13px] font-semibold text-white shadow-[0_8px_18px_rgba(106,13,173,0.22)] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:cursor-not-allowed disabled:opacity-50 @min-[520px]/account:w-auto"
                     disabled={
                       savingPassword ||
                       !passwordForm.currentPassword ||

@@ -28,7 +28,7 @@ const getDayData = async (date) => {
     role: "employee",
     isActive: true,
     onboardingStatus: "approved",
-  }).select("_id name email department shiftStart shiftEnd").sort({ name: 1 }).lean();
+  }).select("_id name email department shiftStart shiftEnd joiningDate approvedAt").sort({ name: 1 }).lean();
   const [resolved, context, settings, automation, missingCheckOuts, openMissingCheckOutCount, yesterdayMissingCheckOutCount, olderMissingCheckOutCount, corrections, automationRuns, approvedLeaves] = await Promise.all([
     resolveRangeBulk(employees, date, date),
     getResolutionContext(date, date),

@@ -176,6 +176,7 @@ export default function AttendancePage({ embedded = false }) {
   const counts = useMemo(() => {
     const present = history.filter((record) => record.status === "present").length;
     const late = history.filter((record) => record.status === "late").length;
+    const absent = history.filter((record) => record.status === "absent").length;
     const leave = history.filter((record) => record.status === "leave").length;
     const halfDayLeaveDays = history.reduce(
       (total, record) => total + (record.leaveDays || 0),
@@ -193,6 +194,7 @@ export default function AttendancePage({ embedded = false }) {
     return {
       present,
       late,
+      absent,
       leave,
       halfDayLeaveDays,
       missingCheckOut,
@@ -499,6 +501,7 @@ export default function AttendancePage({ embedded = false }) {
               {[
                 ["Present", counts.present, "emerald"],
                 ["Late", counts.late, "amber"],
+                ["Absent", counts.absent, "rose"],
                 ["Leave", counts.leave, "violet"],
                 ["Half-day leave · days", counts.halfDayLeaveDays, "violet"],
                 ["Missing check-out", counts.missingCheckOut, "rose"],

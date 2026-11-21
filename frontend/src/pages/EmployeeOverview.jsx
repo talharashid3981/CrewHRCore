@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
+  AlertTriangle,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
@@ -255,6 +256,12 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
       theme: "amber",
     },
     {
+      label: "Absent",
+      value: `${summary.absent || 0} ${summary.absent === 1 ? "day" : "days"}`,
+      icon: AlertTriangle,
+      theme: "red",
+    },
+    {
       label: "Leave",
       value: `${summary.leave || 0} ${summary.leave === 1 ? "day" : "days"}`,
       icon: CalendarDays,
@@ -342,7 +349,9 @@ function SummaryCard({ label, value, month, icon: Icon, theme, progress }) {
       ? "bg-green-50 text-green-700"
       : theme === "amber"
         ? "bg-amber-50 text-amber-600"
-        : "bg-purple-100 text-violet-700";
+        : theme === "red"
+          ? "bg-red-50 text-red-700"
+          : "bg-violet-100 text-violet-800";
 
   return (
     <article

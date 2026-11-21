@@ -57,7 +57,11 @@ export default function TodayAttendanceCard({
       ? "bg-amber-300"
       : status === "present"
         ? "bg-green-300"
-        : "bg-purple-200";
+        : status === "absent"
+          ? "bg-red-300"
+          : status === "weekend" || status === "holiday"
+            ? "bg-white/70"
+            : "bg-purple-200";
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000);

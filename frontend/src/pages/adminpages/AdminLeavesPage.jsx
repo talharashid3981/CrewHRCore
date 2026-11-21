@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
-  Bell,
   CalendarDays,
   Check,
   ChevronDown,
@@ -317,7 +316,7 @@ export default function AdminLeavesPage({ user }) {
     <main className="min-w-0 font-['Inter',sans-serif] text-slate-800">
       <header className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
-          <h1 className="font-['Poppins',sans-serif] text-[30px] font-semibold leading-[1.25] tracking-[-.6px] text-slate-900">Leave management</h1>
+          <h1 className="font-['Poppins',sans-serif] text-2xl font-semibold leading-[1.25] tracking-[-.6px] text-slate-900 sm:text-[30px]">Leave management</h1>
           <p className="mt-1 text-[14px] leading-[1.5] text-slate-600 sm:text-[15px]">Review leave requests and maintain leave policy.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -333,10 +332,6 @@ export default function AdminLeavesPage({ user }) {
           >
             {exporting ? <LoaderCircle className="animate-spin" size={15} /> : <Download size={15} />}
             Export
-          </button>
-          <button type="button" onClick={() => { setStatus("pending"); setTab("requests"); }} aria-label="View pending requests" className="relative grid size-10 place-items-center rounded-xl border border-slate-300 bg-white text-slate-600 shadow-sm transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600">
-            <Bell size={17} />
-            {pendingCount > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-red-700" />}
           </button>
           <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
             <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(user?.name)}</span>
@@ -715,7 +710,7 @@ function LoadingRows() {
       {Array.from({ length: 5 }, (_, index) => (
         <div key={index} className="flex items-center gap-3 px-5 py-4">
           <span className="size-11 animate-pulse rounded-full bg-slate-100" />
-          <div className="flex-1 space-y-2"><span className="block h-3 w-32 animate-pulse rounded bg-slate-200" /><span className="block h-2.5 w-48 max-w-full animate-pulse rounded bg-slate-200" /></div>
+          <div className="min-w-0 flex-1 space-y-2"><span className="block h-3 w-32 max-w-full animate-pulse rounded bg-slate-200" /><span className="block h-2.5 w-48 max-w-full animate-pulse rounded bg-slate-200" /></div>
         </div>
       ))}
     </div>

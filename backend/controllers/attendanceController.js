@@ -11,6 +11,11 @@ import {
   todayKey,
   toKarachiMoment,
 } from "../utils/attendanceHelpers.js";
+import {
+  getAttendanceStartDate,
+  resolveDayStatus,
+  resolveRange,
+} from "../services/automationService.js";
 
 const locationSchema = z.object({
   lat: z.number().finite().min(-90).max(90),
@@ -124,16 +129,23 @@ const verifyLocation = (location, settings, res) => {
 
 export const getTodayAttendance = async (req, res) => {
   try {
-    const date = todayKey();
-    const [record, settings, approvedLeave] = await Promise.all([
+    const moment = toKarachiMoment();
+    const date = moment.dateKey;
+    const attendanceStartDate = getAttendanceStartDate(req.user);
+    const [record, settings, approvedLeave, status] = await Promise.all([
       attendanceModel.findOne({ employee: req.user._id, date }).lean(),
       getOfficeSettings(),
       getApprovedLeaveOn(req.user._id, date),
+      resolveDayStatus(req.user._id, date, moment),
     ]);
     const state = { canCheckIn: false, canCheckOut: Boolean(record?.checkIn && !record?.checkOut), reason: null };
     if (record?.checkOut) state.reason = "Today's attendance is complete";
     else if (record) state.reason = "You have already checked in today";
-    else if (approvedLeave && approvedLeave.duration !== "half") state.reason = "You are on approved leave today";
+    else if (!attendanceStartDate || date < attendanceStartDate) {
+      state.reason = attendanceStartDate
+        ? `Attendance is available from ${attendanceStartDate}`
+        : "Your attendance start date has not been configured";
+    } else if (approvedLeave && approvedLeave.duration !== "half") state.reason = "You are on approved leave today";
     else if (!settings || !Number.isFinite(settings.latitude) || !Number.isFinite(settings.longitude)) state.reason = "Office location is not set by admin";
     else {
       const holidaySet = await getHolidaySet([date]);
@@ -141,7 +153,6 @@ export const getTodayAttendance = async (req, res) => {
       else if (isWeekend(date, settings.weekendDays)) state.reason = "Today is a weekend day";
       else if (!req.user.shiftStart || !req.user.shiftEnd) state.reason = "Your shift has not been configured";
       else {
-        const moment = toKarachiMoment();
         const shiftStart = parseTime(req.user.shiftStart);
         const shiftEnd = parseTime(req.user.shiftEnd);
         if (!isWorkingHalf(approvedLeave, moment, shiftStart, shiftEnd)) {
@@ -154,7 +165,7 @@ export const getTodayAttendance = async (req, res) => {
     const attendance = approvedLeave?.duration === "half" && record
       ? { ...record, leaveDays: 0.5, leavePeriod: approvedLeave.halfDayPeriod }
       : record;
-    return res.status(200).json({ success: true, date, record: publicAttendance(attendance), leave: leaveInfo(approvedLeave), state });
+    return res.status(200).json({ success: true, date, record: publicAttendance(attendance), status, leave: leaveInfo(approvedLeave), state });
   } catch (error) {
     console.error("Get today attendance failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
@@ -169,6 +180,15 @@ export const checkIn = async (req, res) => {
     const settings = await getOfficeSettings();
     if (!ensureConfiguredOffice(settings, res)) return;
     const moment = toKarachiMoment();
+    const attendanceStartDate = getAttendanceStartDate(req.user);
+    if (!attendanceStartDate || moment.dateKey < attendanceStartDate) {
+      return res.status(409).json({
+        success: false,
+        message: attendanceStartDate
+          ? `Attendance is available from ${attendanceStartDate}`
+          : "Your attendance start date has not been configured",
+      });
+    }
     if (!(await checkCalendar(moment.dateKey, settings, res))) return;
     const approvedLeave = await getApprovedLeaveOn(req.user._id, moment.dateKey);
     if (approvedLeave && approvedLeave.duration !== "half") {
@@ -273,21 +293,44 @@ export const getAttendanceHistory = async (req, res) => {
       to: { $in: dates },
     }).select("from halfDayPeriod").lean() : [];
     const leaveByDate = new Map(halfDayLeaves.map((leave) => [leave.from, leave]));
-    return res.status(200).json({
-      success: true,
-      attendance: records.map((record) => {
-        const leave = leaveByDate.get(record.date);
-        const halfDayRecord = leave
-          ? {
-            ...record,
-            ...(record.status === "leave" && !record.checkIn ? { status: "absent" } : {}),
-            leaveDays: 0.5,
-            leavePeriod: leave.halfDayPeriod,
-          }
-          : record;
-        return publicAttendance(halfDayRecord);
-      }),
+    const attendance = records.map((record) => {
+      const leave = leaveByDate.get(record.date);
+      const halfDayRecord = leave
+        ? {
+          ...record,
+          ...(record.status === "leave" && !record.checkIn ? { status: "absent" } : {}),
+          leaveDays: 0.5,
+          leavePeriod: leave.halfDayPeriod,
+        }
+        : record;
+      return publicAttendance(halfDayRecord);
     });
+    const today = todayKey();
+    const rangeIncludesToday = (!parsed.data.from || parsed.data.from <= today)
+      && (!parsed.data.to || parsed.data.to >= today);
+    if (rangeIncludesToday && !records.some((record) => record.date === today)) {
+      const [resolvedToday] = await resolveRange(req.user._id, today, today);
+      if (["absent", "leave", "holiday"].includes(resolvedToday.status)) {
+        const resolvedRecord = resolvedToday.attendance || {};
+        attendance.unshift({
+          id: `resolved-${today}`,
+          date: today,
+          checkIn: resolvedRecord.checkIn || null,
+          checkOut: resolvedRecord.checkOut || null,
+          status: resolvedToday.status,
+          missingCheckOut: Boolean(resolvedRecord.missingCheckOut),
+          lateMinutes: resolvedRecord.lateMinutes || 0,
+          checkInLocation: resolvedRecord.checkInLocation || null,
+          checkOutLocation: resolvedRecord.checkOutLocation || null,
+          workedMinutes: resolvedRecord.workedMinutes,
+          leaveDays: resolvedRecord.leaveDays || 0,
+          leavePeriod: resolvedRecord.leavePeriod || null,
+          createdAt: resolvedRecord.createdAt,
+          updatedAt: resolvedRecord.updatedAt,
+        });
+      }
+    }
+    return res.status(200).json({ success: true, attendance: attendance.slice(0, 100) });
   } catch (error) {
     console.error("Get attendance history failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });

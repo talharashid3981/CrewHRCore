@@ -21,7 +21,12 @@ const onboardingSchema = z.object({
   jobTitle: z.string().trim().min(1, "Job title is required").max(100),
   department: z.string().trim().min(1, "Department is required").max(100),
   shift: z.enum(["AM", "PM"]),
-  joiningDate: z.coerce.date(),
+  joiningDate: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce.date({
+      error: "Joining date is required",
+    }),
+  ),
 }).strict();
 
 const profileSchema = z.object({

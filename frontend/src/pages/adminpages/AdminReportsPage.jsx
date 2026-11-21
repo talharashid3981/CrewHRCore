@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
-  Bell,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -320,18 +319,17 @@ export default function AdminReportsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white p-1 shadow-sm">
-            <button type="button" onClick={() => setMonthByOffset(-1)} aria-label="Previous month" className="grid size-8 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800"><ChevronLeft size={17} /></button>
+            <button type="button" onClick={() => setMonthByOffset(-1)} aria-label="Previous month" className="grid size-8 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 max-[250px]:hidden"><ChevronLeft size={17} /></button>
             <label className="relative flex h-8 min-w-[140px] cursor-pointer items-center justify-center px-2 text-[13px] font-semibold text-slate-800 sm:min-w-[155px]">
               <span>{monthLabel}</span>
               <input aria-label="Report month" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" type="month" max={maxMonth} value={month} onChange={(event) => { setMonth(event.target.value); setPage(1); }} />
             </label>
-            <button type="button" onClick={() => setMonthByOffset(1)} aria-label="Next month" disabled={month >= maxMonth} className="grid size-8 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 disabled:cursor-not-allowed disabled:opacity-35"><ChevronRight size={17} /></button>
+            <button type="button" onClick={() => setMonthByOffset(1)} aria-label="Next month" disabled={month >= maxMonth} className="grid size-8 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 disabled:cursor-not-allowed disabled:opacity-35 max-[250px]:hidden"><ChevronRight size={17} /></button>
           </div>
           <button type="button" onClick={download} disabled={exporting || loading} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(90deg,#6A0DAD_0%,#7C3AED_100%)] px-4 font-['Poppins',sans-serif] text-[15px] font-semibold text-white shadow-[0_6px_16px_rgba(106,13,173,.2)] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:cursor-not-allowed disabled:opacity-60">
             {exporting ? <LoaderCircle className="animate-spin" size={16} /> : <Download size={16} />}
             {exporting ? "Exporting..." : "Export report"}
           </button>
-          <button type="button" aria-label="Notifications" className="relative grid size-10 place-items-center rounded-xl border border-slate-300 bg-white text-slate-600 shadow-sm transition hover:bg-violet-50 hover:text-violet-800"><Bell size={17} /><span className="absolute right-2 top-2 size-2 rounded-full bg-red-700" /></button>
           <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
             <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(avatarName)}</span>
             <span className="max-w-16 truncate text-[13px] font-medium text-slate-700 sm:max-w-24">{avatarName.split(" ")[0]}</span>
@@ -385,7 +383,7 @@ export default function AdminReportsPage() {
           </div>
         </article>
 
-        <div className="grid min-w-0 grid-cols-2 gap-3">
+        <div className="grid min-w-0 grid-cols-2 gap-3 max-[250px]:grid-cols-1">
           <MetricCard
             label="Attendance rate"
             value={`${currentMetrics.attendance.toFixed(0)}%`}
@@ -458,7 +456,7 @@ export default function AdminReportsPage() {
           <div className="grid min-h-[210px] place-items-center px-5 text-center"><p className="text-[13px] text-slate-600">No employees match the selected filters.</p></div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="contain-[layout_paint] overflow-x-auto">
               <table className="w-full min-w-[960px] text-left">
                 <thead className="bg-violet-50/60 text-xs font-semibold text-slate-700">
                   <tr className="border-b border-slate-100">

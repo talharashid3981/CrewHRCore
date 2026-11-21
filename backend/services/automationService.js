@@ -7,7 +7,7 @@ import officeSettingsModel from "../models/OfficeSettings.js";
 import userModel from "../models/User.js";
 import { addDays, compareDates } from "./leaveService.js";
 import { getKarachiDateString, isValidCalendarDate } from "../utils/calendar.js";
-import { isWeekend } from "../utils/attendanceHelpers.js";
+import { isWeekend, toKarachiMoment } from "../utils/attendanceHelpers.js";
 import { expandHolidayDates, holidayRangeQuery } from "../utils/holidayCalendar.js";
 
 let isClosing = false;
@@ -22,6 +22,8 @@ const eligibleFrom = (employee) => {
   if (!approvalDayAfter) return joining;
   return joining > approvalDayAfter ? joining : approvalDayAfter;
 };
+
+export const getAttendanceStartDate = eligibleFrom;
 
 const getContext = async (from, to) => {
   const [settings, holidays, leaveRequests] = await Promise.all([
@@ -49,6 +51,27 @@ const resolvedStoredStatus = (row, leave) => leave?.duration === "half" && row?.
 const halfDayInfo = (leave) => leave?.duration === "half"
   ? { leaveDays: 0.5, leavePeriod: leave.halfDayPeriod }
   : {};
+
+const parseShiftMinutes = (value) => {
+  if (typeof value !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+export const isAttendanceDeadlinePassed = (employee, date, leave, moment) => {
+  if (date < moment.dateKey) return true;
+  if (date !== moment.dateKey) return false;
+  if (!employee) return false;
+  const shiftStart = parseShiftMinutes(employee.shiftStart);
+  const shiftEnd = parseShiftMinutes(employee.shiftEnd);
+  if (shiftStart === null || shiftEnd === null) return false;
+
+  const isAfternoonLeave = leave?.duration === "half" && leave.halfDayPeriod === "afternoon";
+  const deadline = isAfternoonLeave ? (shiftStart + shiftEnd) / 2 : shiftEnd;
+  return isAfternoonLeave
+    ? moment.totalMinutes >= deadline
+    : moment.totalMinutes > deadline;
+};
 
 const getEligibleEmployees = async () => userModel.find({ role: "employee", isActive: true, onboardingStatus: "approved" }).select("_id joiningDate approvedAt").lean();
 
@@ -91,9 +114,9 @@ const processRange = async (from, to) => {
 
 export const closeDays = async ({ source = "scheduled", initiatedBy = null } = {}) => {
   if (isClosing) {
-    const message = "Daily close is already running";
+    const message = "A daily attendance close is already running";
     await attendanceAutomationRunModel.create({ source, initiatedBy, status: "no_op", message });
-    return { skipped: true, message };
+    return { skipped: true, reason: "already_running", message };
   }
   isClosing = true;
   try {
@@ -101,9 +124,9 @@ export const closeDays = async ({ source = "scheduled", initiatedBy = null } = {
     const state = await automationStateModel.findOne({ key: "dailyClose" }).lean();
     const start = state?.lastProcessedDate ? addDays(state.lastProcessedDate, 1) : end;
     if (start > end) {
-      const message = "No closed days to process";
+      const message = `Attendance is already closed through ${end}`;
       await attendanceAutomationRunModel.create({ source, initiatedBy, toDate: end, status: "no_op", message });
-      return { skipped: true, message };
+      return { skipped: true, reason: "up_to_date", throughDate: end, message };
     }
     const cappedEnd = compareDates(addDays(start, 30), end) < 0 ? addDays(start, 30) : end;
     const result = await processRange(start, cappedEnd);
@@ -129,40 +152,44 @@ export const closeDays = async ({ source = "scheduled", initiatedBy = null } = {
   } finally { isClosing = false; }
 };
 
-export const resolveDayStatus = async (employeeId, dateKey) => {
-  const [existing, context] = await Promise.all([
+export const resolveDayStatus = async (employeeId, dateKey, currentMoment = toKarachiMoment()) => {
+  const [employee, existing, context] = await Promise.all([
+    userModel.findById(employeeId).select("joiningDate approvedAt shiftStart shiftEnd").lean(),
     attendanceModel.findOne({ employee: employeeId, date: dateKey }).lean(),
     getContext(dateKey, dateKey),
   ]);
+  const employeeStart = employee ? eligibleFrom(employee) : null;
+  if (!employeeStart || dateKey < employeeStart) return "notEligible";
   const leave = leaveFor(context.leaves, employeeId, dateKey);
   if (existing) return resolvedStoredStatus(existing, leave);
   if (isWeekend(dateKey, context.weekendDays)) return "weekend";
   if (context.holidays.has(dateKey)) return "holiday";
   if (leaveOn(context.leaves, employeeId, dateKey)) return "leave";
-  return dateKey < getKarachiDateString() ? "absent" : "pending";
+  return isAttendanceDeadlinePassed(employee, dateKey, leave, currentMoment) ? "absent" : "pending";
 };
 
 export const resolveRange = async (employeeId, from, to) => {
   const [employee, context, rows] = await Promise.all([
-    userModel.findById(employeeId).select("joiningDate approvedAt").lean(),
+    userModel.findById(employeeId).select("joiningDate approvedAt shiftStart shiftEnd").lean(),
     getContext(from, to),
     attendanceModel.find({ employee: employeeId, date: { $gte: from, $lte: to } }).lean(),
   ]);
   const rowMap = new Map(rows.map((row) => [row.date, row]));
   const employeeStart = employee ? eligibleFrom(employee) : null;
+  const currentMoment = toKarachiMoment();
   const result = [];
   for (let date = from; date <= to; date = addDays(date, 1)) {
     const row = rowMap.get(date);
+    const leave = leaveFor(context.leaves, employeeId, date);
     let status = row?.status;
     if (!employeeStart || date < employeeStart) status = "notEligible";
-    else if (status) status = resolvedStoredStatus(row, leaveFor(context.leaves, employeeId, date));
+    else if (status) status = resolvedStoredStatus(row, leave);
     else {
       if (isWeekend(date, context.weekendDays)) status = "weekend";
       else if (context.holidays.has(date)) status = "holiday";
       else if (leaveOn(context.leaves, employeeId, date)) status = "leave";
-      else status = date < getKarachiDateString() ? "absent" : "pending";
+      else status = isAttendanceDeadlinePassed(employee, date, leave, currentMoment) ? "absent" : "pending";
     }
-    const leave = leaveFor(context.leaves, employeeId, date);
     const attendance = status === "notEligible" ? null : row || (leave?.duration === "half" ? {} : null);
     result.push({ date, status, attendance: attendance ? { ...attendance, status, ...halfDayInfo(leave) } : null });
   }
@@ -176,7 +203,7 @@ export const resolveRangeBulk = async (employees, from, to) => {
     employeeIds.length ? attendanceModel.find({ employee: { $in: employeeIds }, date: { $gte: from, $lte: to } }).lean() : [],
   ]);
   const rowMap = new Map(rows.map((row) => [`${row.employee}:${row.date}`, row]));
-  const today = getKarachiDateString();
+  const currentMoment = toKarachiMoment();
   const result = new Map();
   for (const employee of employees) {
     const employeeRows = [];
@@ -190,7 +217,7 @@ export const resolveRangeBulk = async (employees, from, to) => {
         if (isWeekend(date, context.weekendDays)) status = "weekend";
         else if (context.holidays.has(date)) status = "holiday";
         else if (leaveOn(context.leaves, employee._id, date)) status = "leave";
-        else status = date < today ? "absent" : "pending";
+        else status = isAttendanceDeadlinePassed(employee, date, leave, currentMoment) ? "absent" : "pending";
       }
       const attendance = status === "notEligible" ? null : row || (leave?.duration === "half" ? {} : null);
       employeeRows.push({ date, status, attendance: attendance ? { ...attendance, status, ...halfDayInfo(leave) } : null });

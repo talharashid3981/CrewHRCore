@@ -128,10 +128,10 @@ export default function AdminOverview({ onDataLoaded, onNavigate }) {
       <AlertsPanel alerts={data.alerts} automation={data.automation} onNavigate={onNavigate} />
     </div>
 
-    <div className="mt-4 grid gap-4 lg:grid-cols-2 min-[1200px]:grid-cols-[minmax(255px,.92fr)_minmax(340px,1.18fr)_minmax(290px,1fr)]">
+    <div className="mt-4 grid gap-4 lg:grid-cols-2 min-[1200px]:!grid-cols-[minmax(255px,.92fr)_minmax(340px,1.18fr)_minmax(290px,1fr)]">
       <OnboardingPanel onboarding={data.onboarding} onNavigate={onNavigate} />
       <DepartmentPanel departments={data.departments} dayType={data.dayType} onNavigate={onNavigate} />
-      <ActivityPanel activities={data.activities} />
+      <ActivityPanel activities={data.activities} className="lg:col-span-2 min-[1200px]:!col-span-1" />
     </div>
   </section>;
 }
@@ -157,7 +157,8 @@ function AttendancePanel({ attendance, dayType, date, attendanceRate, onClick })
   const segments = [
     { label: "Present", value: attendance.present, color: "#15803D" },
     { label: "Late", value: attendance.late, color: "#B45309" },
-    { label: "Not checked in", value: attendance.notCheckedIn, color: "#B91C1C" },
+    { label: "Absent", value: attendance.absent, color: "#B91C1C" },
+    { label: "Not checked in", value: attendance.notCheckedIn, color: "#64748B" },
     { label: "On leave", value: attendance.onLeave, color: "#7C3AED" },
   ];
   const segmentTotal = segments.reduce((sum, segment) => sum + segment.value, 0);
@@ -184,36 +185,33 @@ function AttendancePanel({ attendance, dayType, date, attendanceRate, onClick })
         {date && <span className="text-xs text-violet-100">{formatDate(date)}</span>}
       </div>
 
-      <div className="mt-1 flex min-w-0 items-center gap-2 pr-28 sm:pr-0">
-        <strong className="font-['Poppins',sans-serif] text-[40px] leading-[1.05] font-semibold tracking-[-.6px]">{numberFormat.format(checkedIn)}</strong>
-        <p className="pt-1 text-[13px] leading-[1.5] text-violet-100 sm:text-[14px]">
+      <div className="mt-2 flex min-w-0 items-center gap-3">
+        <strong className="shrink-0 font-['Poppins',sans-serif] text-[40px] leading-[1.05] font-semibold tracking-[-.6px]">{numberFormat.format(checkedIn)}</strong>
+        <p className="min-w-0 flex-1 pt-1 text-[13px] leading-[1.5] text-violet-100 sm:text-[14px]">
           of {numberFormat.format(attendance.expected)} active employees checked in
         </p>
-      </div>
-
-      <div className="mt-auto flex flex-wrap items-end justify-between gap-4 pt-3">
-        <div className="flex min-w-0 flex-wrap gap-2">
-          {labels.map((segment) => <div key={segment.label} className="min-w-[67px] rounded-xl border border-white/15 bg-white/10 px-2.5 py-2">
-            <span className="flex items-center gap-1.5 whitespace-nowrap text-xs text-violet-100">
-              <span className="size-1.5 rounded-full" style={{ backgroundColor: segment.color }} />{segment.label}
-            </span>
-            <strong className="mt-1 block font-['Poppins',sans-serif] text-[18px] leading-5 font-semibold">{numberFormat.format(segment.value)}</strong>
-          </div>)}
-        </div>
-
         <div
-          className="absolute right-0 top-1 grid size-[114px] shrink-0 place-items-center rounded-full p-[9px] sm:static sm:size-[124px]"
+          className="grid size-[84px] shrink-0 place-items-center rounded-full p-[7px] sm:size-[124px] sm:p-[9px]"
           role="img"
           aria-label={attendance.expected ? `${attendanceRate}% checked in` : "No attendance expected today"}
           style={{ background: `conic-gradient(${ring})` }}
         >
           <div className="grid size-full place-items-center rounded-full bg-[#4C1D95] text-center">
             <div>
-              <strong className="block font-['Poppins',sans-serif] text-[24px] leading-7 font-semibold">{attendance.expected ? `${attendanceRate}%` : "—"}</strong>
-              <span className="text-xs text-violet-100">checked in</span>
+              <strong className="block font-['Poppins',sans-serif] text-[22px] leading-6 font-semibold sm:text-[24px] sm:leading-7">{attendance.expected ? `${attendanceRate}%` : "—"}</strong>
+              <span className="text-[11px] text-violet-100 sm:text-xs">checked in</span>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="mt-auto flex min-w-0 flex-wrap gap-2 pt-3">
+        {labels.map((segment) => <div key={segment.label} className="min-w-[67px] rounded-xl border border-white/15 bg-white/10 px-2.5 py-2">
+          <span className="flex items-center gap-1.5 whitespace-nowrap text-xs text-violet-100">
+            <span className="size-1.5 rounded-full" style={{ backgroundColor: segment.color }} />{segment.label}
+          </span>
+          <strong className="mt-1 block font-['Poppins',sans-serif] text-[18px] leading-5 font-semibold">{numberFormat.format(segment.value)}</strong>
+        </div>)}
       </div>
     </div>
     <button type="button" onClick={onClick} className="absolute inset-0 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500" aria-label="View attendance" />
@@ -283,6 +281,18 @@ function AlertsPanel({ alerts, automation, onNavigate }) {
 }
 
 function OnboardingPanel({ onboarding, onNavigate }) {
+  const classifiedTotal = statusItems.reduce(
+    (total, item) => total + (onboarding[item.key] || 0),
+    0,
+  );
+  const unclassified = Math.max(0, onboarding.total - classifiedTotal);
+  const items = unclassified
+    ? [...statusItems, { key: "unclassified", label: "Unclassified", color: "bg-rose-700" }]
+    : statusItems;
+  const countFor = (item) => item.key === "unclassified"
+    ? unclassified
+    : onboarding[item.key] || 0;
+
   return <section className="min-h-[324px] min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,.045)]">
     <div className="flex items-center justify-between gap-2">
       <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Onboarding status</h2>
@@ -291,14 +301,14 @@ function OnboardingPanel({ onboarding, onNavigate }) {
       </button>
     </div>
     <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-slate-100">
-      {statusItems.map((item) => {
-        const percent = onboarding.total ? (onboarding[item.key] / onboarding.total) * 100 : 0;
+      {items.map((item) => {
+        const percent = onboarding.total ? (countFor(item) / onboarding.total) * 100 : 0;
         return <span key={item.key} className={`${item.color} border-r border-white`} style={{ width: `${percent}%` }} />;
       })}
     </div>
     <div className="mt-3">
-      {statusItems.map((item) => {
-        const count = onboarding[item.key];
+      {items.map((item) => {
+        const count = countFor(item);
         const percent = onboarding.total ? ((count / onboarding.total) * 100).toFixed(1) : "0.0";
         return <div key={item.key} className="flex items-center gap-2 border-b border-slate-100 py-2 text-[13px] last:border-0">
           <span className={`size-2 shrink-0 rounded-full ${item.color}`} />
@@ -308,6 +318,13 @@ function OnboardingPanel({ onboarding, onNavigate }) {
         </div>;
       })}
     </div>
+    {unclassified > 0 && <button
+      type="button"
+      onClick={() => onNavigate("Employees")}
+      className="mt-2 w-full rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-left text-xs font-medium leading-[1.4] text-rose-800 hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
+    >
+      {numberFormat.format(unclassified)} employee status{unclassified === 1 ? "" : "es"} need data review. Open employees.
+    </button>}
     <div className="mt-3 flex items-center gap-2 rounded-lg bg-violet-50 px-3 py-2.5 text-xs font-medium leading-[1.4] text-violet-800">
       <Clock3 size={16} className="shrink-0" />
       <span>Average review time is {onboarding.averageReviewDays === null ? "not available" : `${onboarding.averageReviewDays} days`}</span>
@@ -338,13 +355,13 @@ function DepartmentPanel({ departments, dayType, onNavigate }) {
   </section>;
 }
 
-function ActivityPanel({ activities }) {
+function ActivityPanel({ activities, className = "" }) {
   const [expanded, setExpanded] = useState(false);
   const visibleActivities = expanded ? activities : activities.slice(0, 5);
 
-  return <section className="min-h-[324px] min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,.045)]">
+  return <section className={`min-h-[324px] min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,.045)] ${className}`}>
     <div className="flex items-center justify-between gap-2">
-      <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Latest activity</h2>
+      <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Latest team activity</h2>
       {activities.length > 5
         ? <button onClick={() => setExpanded(!expanded)} className="shrink-0 rounded-lg px-2 py-1 text-[13px] font-semibold text-violet-800 hover:bg-violet-50 hover:text-violet-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600">{expanded ? "Show less" : "View all"}</button>
         : <span className="text-xs font-medium text-slate-600">Last 7 days</span>}
@@ -372,7 +389,7 @@ function DashboardLoading() {
   return <section className="mt-4 animate-pulse space-y-4" aria-label="Loading dashboard">
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((item) => <div className="h-24 rounded-2xl border border-slate-200 bg-white" key={item} />)}</div>
     <div className="grid gap-4 lg:grid-cols-[1.42fr_1fr]"><div className="h-[230px] rounded-2xl bg-violet-100" /><div className="h-[230px] rounded-2xl border border-slate-200 bg-white" /></div>
-    <div className="grid gap-4 lg:grid-cols-2 min-[1200px]:grid-cols-3">{[0, 1, 2].map((item) => <div className="h-[340px] rounded-2xl border border-slate-200 bg-white" key={item} />)}</div>
+    <div className="grid gap-4 lg:grid-cols-2 min-[1200px]:!grid-cols-3">{[0, 1, 2].map((item) => <div className={`h-[340px] rounded-2xl border border-slate-200 bg-white ${item === 2 ? "lg:col-span-2 min-[1200px]:!col-span-1" : ""}`} key={item} />)}</div>
   </section>;
 }
 

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  Bell,
   CalendarDays,
   Check,
   Clock3,
@@ -410,7 +409,6 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
               <span className={`size-2 rounded-full ${!officeLoaded ? "bg-slate-500" : savedMeta.isConfigured ? "bg-green-700" : "bg-amber-700"}`} />
               {loading ? "Loading" : !officeLoaded ? "Unavailable" : savedMeta.isConfigured ? "Configured" : "Location not configured"}
             </div>
-            <button type="button" aria-label="Notifications" className="relative grid size-10 place-items-center rounded-xl border border-slate-300 bg-white text-slate-600 shadow-sm transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600"><Bell size={17} /><span className="absolute right-2 top-2 size-2 rounded-full bg-red-700" /></button>
             <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
               <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(user?.name)}</span>
               <span className="max-w-20 truncate text-[13px] font-medium text-slate-700">{user?.name?.split(" ")[0] || "Admin"}</span>

@@ -24,7 +24,7 @@ export const dashboardAdmin = async (req, res) => {
       userModel.find({
         ...activeEmployeeFilter,
         onboardingStatus: "approved",
-      }).select("_id name department joiningDate approvedAt").lean(),
+      }).select("_id name department joiningDate approvedAt shiftStart shiftEnd").lean(),
       userModel.find(activeEmployeeFilter).distinct("_id"),
     ]);
 
@@ -114,8 +114,12 @@ export const dashboardAdmin = async (req, res) => {
       ["present", "late"].includes(resolved?.status),
     );
     const lateRows = eligibleTodayRows.filter(({ resolved }) => resolved?.status === "late");
+    const absentRows = eligibleTodayRows.filter(({ resolved }) => resolved?.status === "absent");
     const onLeaveRows = eligibleTodayRows.filter(({ resolved }) => resolved?.status === "leave");
     const notCheckedInRows = eligibleTodayRows.filter(({ resolved }) => resolved?.status === "pending");
+    const expectedRows = eligibleTodayRows.filter(({ resolved }) =>
+      ["present", "late", "absent", "pending"].includes(resolved?.status),
+    );
     const [context, holiday] = await Promise.all([
       getResolutionContext(date, date),
       holidayModel.findOne(holidayOnDateQuery(date)).select("name date to").lean(),
@@ -126,9 +130,9 @@ export const dashboardAdmin = async (req, res) => {
       : context.weekendDays.includes(weekday)
         ? "weekend"
         : "working";
-    const expected = dayType === "working" ? eligibleTodayRows.length : 0;
+    const expected = dayType === "working" ? expectedRows.length : 0;
     const departmentMap = new Map();
-    for (const { employee, resolved } of eligibleTodayRows) {
+    for (const { employee, resolved } of expectedRows) {
       const name = employee.department || "General";
       const department = departmentMap.get(name) || { name, total: 0, checkedIn: 0 };
       department.total += 1;
@@ -230,6 +234,7 @@ export const dashboardAdmin = async (req, res) => {
           ? checkedInRows.filter(({ resolved }) => resolved.status === "present").length
           : 0,
         late: dayType === "working" ? lateRows.length : 0,
+        absent: dayType === "working" ? absentRows.length : 0,
         notCheckedIn: dayType === "working" ? notCheckedInRows.length : 0,
         onLeave: dayType === "working" ? onLeaveRows.length : 0,
         holiday: holiday?.name || null,
@@ -282,18 +287,24 @@ export const dashboardToday = async (req, res) => {
       attendanceModel.find({ date: { $gte: addDays(date, -6), $lte: date }, missingCheckOut: true }).populate("employee", "name email").lean(),
     ]);
     const todayRows = employees.map((employee) => ({ employee, resolved: rows.get(String(employee._id))?.[0] }));
-    const checkedIn = todayRows.filter(({ resolved }) => ["present", "late"].includes(resolved?.status));
+    const eligibleTodayRows = todayRows.filter(({ resolved }) => resolved?.status !== "notEligible");
+    const checkedIn = eligibleTodayRows.filter(({ resolved }) => ["present", "late"].includes(resolved?.status));
     const late = checkedIn.filter(({ resolved }) => resolved.status === "late");
-    const onLeave = todayRows.filter(({ resolved }) => resolved?.status === "leave");
+    const absent = eligibleTodayRows.filter(({ resolved }) => resolved?.status === "absent");
+    const onLeave = eligibleTodayRows.filter(({ resolved }) => resolved?.status === "leave");
     const inOffice = checkedIn.filter(({ resolved }) => !resolved.attendance?.checkOut);
-    const notCheckedInYet = todayRows.filter(({ resolved }) => resolved?.status === "pending");
+    const notCheckedInYet = eligibleTodayRows.filter(({ resolved }) => resolved?.status === "pending");
+    const expectedRows = eligibleTodayRows.filter(({ resolved }) =>
+      ["present", "late", "absent", "pending"].includes(resolved?.status),
+    );
     const dayType = context.holidays.has(date) ? "holiday" : context.weekendDays.includes(new Date(`${date}T00:00:00Z`).getUTCDay()) ? "weekend" : "working";
     const lists = {
       late: late.map(({ employee, resolved }) => ({ id: employee._id, name: employee.name, lateMinutes: resolved.attendance?.lateMinutes || 0 })),
+      absent: absent.map(({ employee }) => ({ id: employee._id, name: employee.name })),
       onLeave: onLeave.map(({ employee }) => ({ id: employee._id, name: employee.name })),
       notCheckedInYet: notCheckedInYet.map(({ employee }) => ({ id: employee._id, name: employee.name })),
     };
-    return res.json({ success: true, date, dayType, holiday: holiday ? { name: holiday.name, date: holiday.date } : null, expected: dayType === "working" ? employees.length : 0, checkedIn: dayType === "working" ? checkedIn.length : 0, late: dayType === "working" ? late.length : 0, inOffice: dayType === "working" ? inOffice.length : 0, onLeave: dayType === "working" ? onLeave.length : 0, notCheckedInYet: dayType === "working" ? notCheckedInYet.length : 0, pendingOnboarding, pendingLeaveRequests, missingCheckOuts: missingRows.length, missingCheckOutList: missingRows.map((row) => ({ id: row.employee?._id, name: row.employee?.name, date: row.date })), lists });
+    return res.json({ success: true, date, dayType, holiday: holiday ? { name: holiday.name, date: holiday.date } : null, expected: dayType === "working" ? expectedRows.length : 0, checkedIn: dayType === "working" ? checkedIn.length : 0, late: dayType === "working" ? late.length : 0, absent: dayType === "working" ? absent.length : 0, inOffice: dayType === "working" ? inOffice.length : 0, onLeave: dayType === "working" ? onLeave.length : 0, notCheckedInYet: dayType === "working" ? notCheckedInYet.length : 0, pendingOnboarding, pendingLeaveRequests, missingCheckOuts: missingRows.length, missingCheckOutList: missingRows.map((row) => ({ id: row.employee?._id, name: row.employee?.name, date: row.date })), lists });
   } catch (error) { console.error("Dashboard today failed:", error); return res.status(500).json({ success: false, message: "Internal server error" }); }
 };
 

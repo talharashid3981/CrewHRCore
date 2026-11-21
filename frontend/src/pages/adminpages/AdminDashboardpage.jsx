@@ -1,7 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell,
   CalendarCheck,
   CalendarDays,
   ClipboardCheck,
@@ -9,10 +8,12 @@ import {
   FileBarChart,
   LayoutDashboard,
   LogOut,
+  Menu,
   Settings,
   UserRound,
   Users,
   UsersRound,
+  X,
 } from "lucide-react";
 import { exportMonthlyReport } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
@@ -43,7 +44,17 @@ export default function AdminDashboardpage() {
   const [dashboardData, setDashboardData] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   useToastMessage(exportError, "error");
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [mobileMenuOpen]);
 
   const signOut = async () => {
     await logout();
@@ -51,6 +62,7 @@ export default function AdminDashboardpage() {
   };
 
   const navigateTo = useCallback((target) => {
+    setMobileMenuOpen(false);
     if (target === "Approvals") {
       setEmployeeStatus("pending");
       setSection("Employees");
@@ -87,10 +99,20 @@ export default function AdminDashboardpage() {
   };
 
   const firstName = user?.name?.split(" ")[0] || "Admin";
-  const pendingTotal = (dashboardData?.summary.pending || 0) + (dashboardData?.summary.pendingLeaves || 0);
-
   return <main className="min-h-screen bg-[linear-gradient(160deg,#F3E8FF_0%,#F8FAFC_55%,#EDE9FE_100%)] font-['Inter',sans-serif] text-slate-800 md:flex">
-    <aside className="z-20 w-full border-b border-[#E9E5F7] bg-white/95 px-4 py-4 backdrop-blur md:sticky md:top-0 md:flex md:h-screen md:w-[228px] md:shrink-0 md:flex-col md:border-b-0 md:border-r md:px-4 md:py-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[#E9E5F7] bg-white/95 px-3 backdrop-blur md:hidden">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,#4C1D95_0%,#6A0DAD_55%,#7C3AED_100%)] text-white"><UsersRound size={18} /></span>
+        <span className="truncate font-['Poppins',sans-serif] text-[15px] font-semibold text-slate-900">Crew HRCore</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <button type="button" className="grid size-10 place-items-center rounded-xl text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation menu" aria-controls="admin-sidebar" aria-expanded={mobileMenuOpen}>
+          <Menu size={20} />
+        </button>
+      </div>
+    </header>
+    {mobileMenuOpen && <button type="button" className="fixed inset-0 z-30 bg-slate-950/40 md:hidden" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu" />}
+    <aside id="admin-sidebar" className={`fixed inset-y-0 left-0 z-40 flex h-screen w-[280px] shrink-0 flex-col border-r border-[#E9E5F7] bg-white/95 px-4 py-4 shadow-xl backdrop-blur transition-transform duration-200 md:sticky md:top-0 md:z-20 md:h-screen md:w-[228px] md:border-b-0 md:px-4 md:py-6 md:shadow-none ${mobileMenuOpen ? "visible translate-x-0" : "invisible -translate-x-full"} md:visible md:translate-x-0`}>
       <div className="flex items-center justify-between gap-3 px-1 md:px-1.5">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,#4C1D95_0%,#6A0DAD_55%,#7C3AED_100%)] text-white shadow-[0_6px_14px_rgba(106,13,173,.2)]"><UsersRound size={20} /></span>
@@ -99,13 +121,12 @@ export default function AdminDashboardpage() {
             <span className="mt-0.5 block text-xs font-medium text-violet-800">Admin workspace</span>
           </span>
         </div>
-        <button className="relative grid size-10 shrink-0 place-items-center rounded-xl text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 md:hidden" onClick={() => navigateTo("Leaves")} aria-label="View pending requests">
-          <Bell size={18} />
-          {pendingTotal > 0 && <span className="absolute right-1 top-1 size-2 rounded-full bg-red-700" />}
+        <button type="button" className="grid size-10 shrink-0 place-items-center rounded-xl text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 md:hidden" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu">
+          <X size={18} />
         </button>
       </div>
 
-      <nav className="mt-4 flex gap-1 overflow-x-auto pb-1 md:mt-6 md:grid md:overflow-visible md:pb-0" aria-label="Admin navigation">
+      <nav className="mt-4 grid grid-cols-1 gap-1 md:mt-6" aria-label="Admin navigation">
         {navItems.map((item) => <NavButton
           key={item.section}
           active={section === item.section}
@@ -115,7 +136,7 @@ export default function AdminDashboardpage() {
         >{item.label}</NavButton>)}
       </nav>
 
-      <div className="mt-1 flex gap-1 overflow-x-auto md:mt-3 md:block md:overflow-visible">
+      <div className="mt-1 grid grid-cols-1 gap-1 md:mt-3 md:block">
         <p className="mb-2 hidden px-3 text-[13px] font-semibold text-slate-600 md:block">Settings</p>
         <NavButton active={section === "Office settings"} onClick={() => navigateTo("Office settings")} icon={Settings}>Office settings</NavButton>
         <NavButton active={section === "Account settings"} onClick={() => navigateTo("Account settings")} icon={UserRound}>Account settings</NavButton>
@@ -148,10 +169,6 @@ export default function AdminDashboardpage() {
               Review approvals
               {dashboardData?.summary.pending > 0 && <span className="rounded-md bg-white/20 px-1.5 py-0.5 font-['Inter',sans-serif] text-xs">{dashboardData.summary.pending}</span>}
             </button>
-            <button className="relative grid size-10 place-items-center rounded-xl border border-slate-300 bg-white text-slate-600 shadow-sm transition hover:border-violet-300 hover:bg-violet-50/60 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600" onClick={() => navigateTo(pendingTotal ? "Leaves" : "Attendance")} aria-label="View operational alerts">
-              <Bell size={17} />
-              {pendingTotal > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-red-700" />}
-            </button>
             <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
               <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(user?.name)}</span>
               <span className="max-w-20 truncate text-[13px] font-medium text-slate-700">{firstName}</span>
@@ -163,7 +180,7 @@ export default function AdminDashboardpage() {
         {section === "Employees" && <AdminEmployeesPage key={employeeStatus} initialStatus={employeeStatus} embedded />}
         {section === "Office settings" && <Module3SettingsPage embedded onNavigate={navigateTo} />}
         {section === "Calendar" && <div className="-mx-4 -my-5 sm:-mx-6 sm:-my-7 lg:-mx-7"><AdminCalendarPage /></div>}
-        {section === "Attendance" && <AdminAttendanceAutomationPage user={user} pendingCount={pendingTotal} onNavigate={navigateTo} />}
+        {section === "Attendance" && <AdminAttendanceAutomationPage user={user} onNavigate={navigateTo} />}
         {section === "Leaves" && <AdminLeavesPage user={user} onNavigate={navigateTo} />}
         {section === "Reports" && <AdminReportsPage />}
         {section === "Account settings" && <AccountSettings user={user} updateUser={updateUser} onSignOut={signOut} />}
@@ -187,7 +204,7 @@ function NavButton({ active, onClick, icon: Icon, children, badge }) {
     type="button"
     onClick={onClick}
     aria-current={active ? "page" : undefined}
-    className={`flex shrink-0 items-center gap-2.5 rounded-xl border-0 px-3 py-2.5 text-left text-[13px] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 md:w-full md:px-3 md:py-2.5 ${active ? "bg-violet-100 font-semibold text-violet-800" : "bg-transparent font-medium text-slate-600 hover:bg-violet-50 hover:text-violet-800"}`}
+    className={`flex min-w-0 items-center gap-2.5 rounded-xl border-0 px-3 py-2.5 text-left text-[13px] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 md:w-full md:px-3 md:py-2.5 ${active ? "bg-violet-100 font-semibold text-violet-800" : "bg-transparent font-medium text-slate-600 hover:bg-violet-50 hover:text-violet-800"}`}
   >
     <Icon size={16} className="shrink-0" />
     <span className="whitespace-nowrap md:whitespace-normal">{children}</span>
