@@ -278,40 +278,40 @@ export default function AdminCalendarPage() {
     }
   };
 
-  return <main className="min-h-full bg-[#F8FAFC] px-4 py-5 text-slate-800 sm:px-6 lg:px-7 lg:py-4">
-    <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+  return <main className="min-h-full bg-[linear-gradient(160deg,#F3E8FF_0%,#F8FAFC_55%,#EDE9FE_100%)] px-4 py-5 font-['Inter',sans-serif] text-slate-800 sm:px-6 lg:px-7 lg:py-6">
+    <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 className="font-['Poppins',sans-serif] text-[24px] font-semibold tracking-[-.5px] text-slate-900">Calendar</h1>
-        <p className="mt-1 text-[12px] text-slate-500">Maintain the organization holiday calendar.</p>
+        <h1 className="font-['Poppins',sans-serif] text-[30px] font-semibold leading-[1.25] tracking-[-.6px] text-slate-900">Calendar</h1>
+        <p className="mt-1 text-[14px] leading-[1.5] text-slate-600 sm:text-[15px]">Maintain the organization holiday calendar.</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => void exportHolidays()} disabled={!holidays.length || exporting} className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-700 shadow-sm hover:border-violet-200 hover:text-violet-700 disabled:opacity-50">
-          <Download size={13} />{exporting ? "Exporting..." : "Export"}
+        <button type="button" onClick={() => void exportHolidays()} disabled={!holidays.length || exporting} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:border-violet-300 hover:bg-violet-50/60 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:opacity-50">
+          <Download size={16} />{exporting ? "Exporting..." : "Export"}
         </button>
-        <button type="button" onClick={() => openNewHoliday()} className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#7315bd] to-[#8439ec] px-3.5 text-[11px] font-semibold text-white shadow-[0_6px_14px_rgba(124,58,237,.25)] hover:brightness-105">
-          <Plus size={14} />Add holiday
+        <button type="button" onClick={() => openNewHoliday()} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[linear-gradient(90deg,#6A0DAD_0%,#7C3AED_100%)] px-4 font-['Poppins',sans-serif] text-[15px] font-semibold text-white shadow-[0_6px_16px_rgba(106,13,173,.2)] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600">
+          <Plus size={16} />Add holiday
         </button>
-        <span aria-label={`${upcomingHolidays.length} upcoming holidays`} title={`${upcomingHolidays.length} upcoming holidays`} className="relative grid size-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500">
-        <Bell size={14} />
-        {upcomingHolidays.length > 0 && <span className="absolute right-2 top-2 size-1.5 rounded-full bg-rose-500" />}
+        <span aria-label={`${upcomingHolidays.length} upcoming holidays`} title={`${upcomingHolidays.length} upcoming holidays`} className="relative grid size-10 place-items-center rounded-xl border border-slate-300 bg-white text-slate-600">
+        <Bell size={17} />
+        {upcomingHolidays.length > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-red-700" />}
         </span>
-        <div className="flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-3">
-          <span className="grid size-7 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-purple-700 text-[9px] font-semibold text-white">{initials(user?.name)}</span>
-          <span className="max-w-24 truncate text-[11px] font-medium text-slate-700">{user?.name?.split(" ")[0] || "Admin"}</span>
+        <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3">
+          <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(user?.name)}</span>
+          <span className="max-w-24 truncate text-[13px] font-medium text-slate-700">{user?.name?.split(" ")[0] || "Admin"}</span>
         </div>
       </div>
     </header>
 
     <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,.95fr)]">
-      <section className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white p-4 shadow-[0_5px_18px_rgba(15,23,42,.035)] sm:p-5">
+      <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,.045)] sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.3px] text-slate-900">{month.format("MMMM YYYY")}</h2>
+          <h2 className="font-['Poppins',sans-serif] text-xl font-semibold tracking-[-.3px] text-slate-900">{month.format("MMMM YYYY")}</h2>
           <div className="flex items-center gap-1.5">
-            <button type="button" onClick={() => shiftMonth(-1)} aria-label="Previous month" className="grid size-8 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-violet-50 hover:text-violet-700"><ChevronLeft size={15} /></button>
-            <button type="button" onClick={() => shiftMonth(1)} aria-label="Next month" className="grid size-8 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-violet-50 hover:text-violet-700"><ChevronRight size={15} /></button>
-            <button type="button" onClick={goToToday} className="h-8 rounded-lg border border-violet-200 bg-violet-50 px-3 text-[10px] font-semibold text-violet-700 hover:bg-violet-100">Today</button>
-            <div className="ml-1 flex rounded-xl border border-slate-100 bg-slate-50 p-1">
-              {["month", "year"].map((item) => <button key={item} type="button" onClick={() => setView(item)} className={`rounded-lg px-3 py-1 text-[10px] font-semibold capitalize ${view === item ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>{item}</button>)}
+            <button type="button" onClick={() => shiftMonth(-1)} aria-label="Previous month" className="grid size-9 place-items-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600"><ChevronLeft size={17} /></button>
+            <button type="button" onClick={() => shiftMonth(1)} aria-label="Next month" className="grid size-9 place-items-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600"><ChevronRight size={17} /></button>
+            <button type="button" onClick={goToToday} className="h-9 rounded-lg border border-violet-200 bg-violet-50 px-3 text-[13px] font-semibold text-violet-800 transition hover:bg-violet-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600">Today</button>
+            <div className="ml-1 flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+              {["month", "year"].map((item) => <button key={item} type="button" onClick={() => setView(item)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize ${view === item ? "bg-white text-violet-800 shadow-sm" : "text-slate-600 hover:text-violet-800"}`}>{item}</button>)}
             </div>
           </div>
         </div>
@@ -324,7 +324,7 @@ export default function AdminCalendarPage() {
 
         {view === "month" ? <div className="mt-3">
           <div className="grid grid-cols-7">
-            {weekdays.map((day) => <div key={day} className="px-2 py-2 text-[9px] font-bold uppercase tracking-wide text-slate-400">{day}</div>)}
+            {weekdays.map((day) => <div key={day} className="px-2 py-2 text-xs font-semibold text-slate-600">{day}</div>)}
           </div>
           <div className="grid grid-cols-7 overflow-hidden rounded-xl border-l border-t border-slate-100">
             {calendarCells.map((cell) => <button
@@ -337,39 +337,39 @@ export default function AdminCalendarPage() {
               }}
               aria-label={`${cell.date.format("dddd, D MMMM YYYY")}${cell.holiday ? `, public holiday: ${cell.holiday.name}` : ""}`}
               aria-pressed={selectedDate === cell.key}
-              className={`group relative min-h-[76px] min-w-0 border-b border-r border-slate-100 p-1.5 text-left transition sm:min-h-[92px] sm:p-2 ${
+              className={`group relative min-h-[76px] min-w-0 border-b border-r border-slate-200 p-1.5 text-left transition focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600 sm:min-h-[92px] sm:p-2 ${
                 cell.isWeekend ? "bg-slate-50/70" : "bg-white"
               } ${!cell.inMonth ? "text-slate-300" : "text-slate-800"} ${
                 cell.holiday ? "bg-amber-50/60" : ""
               } ${selectedDate === cell.key ? "z-10 outline outline-1 outline-violet-500" : "hover:bg-violet-50/50"}`}
             >
-              <span className={`grid size-5 place-items-center rounded-full text-[10px] font-semibold sm:size-6 sm:text-[11px] ${cell.key === todayKey() ? "bg-violet-600 text-white" : ""}`}>{cell.date.date()}</span>
-              {cell.inMonth && cell.key >= todayKey() && !cell.holiday && <span className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-md bg-violet-100 text-violet-700 opacity-0 transition group-hover:opacity-100"><Plus size={11} /></span>}
+              <span className={`grid size-6 place-items-center rounded-full text-xs font-semibold ${cell.key === todayKey() ? "bg-violet-600 text-white" : ""}`}>{cell.date.date()}</span>
+              {cell.inMonth && cell.key >= todayKey() && !cell.holiday && <span className="absolute right-1.5 top-1.5 grid size-5 place-items-center rounded-md bg-violet-100 text-violet-800 opacity-0 transition group-hover:opacity-100"><Plus size={13} /></span>}
               <span className="mt-1 grid gap-1">
-                {cell.holiday && <span title={`${cell.holiday.name} · ${holidayRangeLabel(cell.holiday)}`} className="block truncate rounded-md border-l-2 border-amber-500 bg-amber-100 px-1 py-1 text-[8px] font-semibold leading-tight text-amber-800">{cell.holiday.date === cell.key ? cell.holiday.name : "↳ Continued"}</span>}
-                {cell.events.filter((event) => event.type === "leave").slice(0, cell.holiday ? 1 : 2).map((event) => <span key={event.id} title={event.title} className={`block truncate rounded-md px-1 py-1 text-[8px] font-medium leading-tight ${event.status === "pending" ? "border border-dashed border-violet-300 bg-white text-violet-700" : "bg-violet-50 text-violet-700"}`}>{event.title}</span>)}
+                {cell.holiday && <span title={`${cell.holiday.name} · ${holidayRangeLabel(cell.holiday)}`} className="block truncate rounded-md border-l-2 border-amber-700 bg-amber-50 px-1 py-1 text-xs font-semibold leading-tight text-amber-800">{cell.holiday.date === cell.key ? cell.holiday.name : "↳ Continued"}</span>}
+                {cell.events.filter((event) => event.type === "leave").slice(0, cell.holiday ? 1 : 2).map((event) => <span key={event.id} title={event.title} className={`block truncate rounded-md px-1 py-1 text-xs font-medium leading-tight ${event.status === "pending" ? "border border-dashed border-violet-300 bg-white text-violet-800" : "bg-violet-100 text-violet-800"}`}>{event.title}</span>)}
               </span>
             </button>)}
           </div>
         </div> : <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {Array.from({ length: 12 }, (_, index) => month.startOf("year").add(index, "month")).map((yearMonth) => {
             const holidayDays = countHolidayDaysInMonth(holidays, yearMonth);
-            return <button type="button" key={yearMonth.format("YYYY-MM")} onClick={() => { setMonth(yearMonth); setView("month"); }} className={`rounded-xl border p-3 text-left transition hover:border-violet-300 hover:bg-violet-50/40 ${yearMonth.month() === month.month() ? "border-violet-300 bg-violet-50/50" : "border-slate-100 bg-white"}`}>
-              <span className="text-[11px] font-semibold text-slate-800">{yearMonth.format("MMMM")}</span>
-              <span className="mt-2 block text-[9px] text-slate-500">{holidayDays} holiday day{holidayDays === 1 ? "" : "s"}</span>
+            return <button type="button" key={yearMonth.format("YYYY-MM")} onClick={() => { setMonth(yearMonth); setView("month"); }} className={`rounded-xl border p-3 text-left transition hover:border-violet-300 hover:bg-violet-50/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600 ${yearMonth.month() === month.month() ? "border-violet-300 bg-violet-50/50" : "border-slate-200 bg-white"}`}>
+              <span className="text-[13px] font-semibold text-slate-800">{yearMonth.format("MMMM")}</span>
+              <span className="mt-2 block text-xs text-slate-600">{holidayDays} holiday day{holidayDays === 1 ? "" : "s"}</span>
             </button>;
           })}
         </div>}
-        {loading && <p className="mt-3 text-[10px] text-slate-400" role="status">Updating calendar…</p>}
+        {loading && <p className="mt-3 text-xs text-slate-600" role="status">Updating calendar…</p>}
       </section>
 
       <aside className="grid min-w-0 gap-3.5">
-        <section className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white p-4 shadow-[0_5px_18px_rgba(15,23,42,.035)] sm:p-5">
+        <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,.045)] sm:p-5">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2"><CalendarDays size={16} className="text-violet-700" /><h2 className="font-['Poppins',sans-serif] text-[13px] font-semibold text-slate-900">Holidays</h2></div>
+            <div className="flex items-center gap-2"><CalendarDays size={18} className="text-violet-800" /><h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold text-slate-900">Holidays</h2></div>
             <label className="relative">
               <span className="sr-only">Calendar year</span>
-              <select value={year} onChange={(event) => { const nextMonth = month.year(Number(event.target.value)); setMonth(nextMonth); setSelectedDate(keyForDate(nextMonth.startOf("month"))); }} className="h-8 appearance-none rounded-lg border border-slate-200 bg-white py-1 pl-2.5 pr-7 text-[10px] font-semibold text-slate-700 outline-none focus:border-violet-400">
+              <select value={year} onChange={(event) => { const nextMonth = month.year(Number(event.target.value)); setMonth(nextMonth); setSelectedDate(keyForDate(nextMonth.startOf("month"))); }} className="h-10 appearance-none rounded-lg border border-slate-400 bg-[#FBFAFF] py-1 pl-3 pr-8 text-[16px] font-medium text-slate-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]">
                 {Array.from({ length: 9 }, (_, index) => dayjs().tz(timeZone).year() - 3 + index).map((optionYear) => <option key={optionYear} value={optionYear}>{optionYear}</option>)}
               </select><ChevronDown size={12} className="pointer-events-none absolute right-2 top-2.5 text-slate-500" />
             </label>
@@ -379,16 +379,16 @@ export default function AdminCalendarPage() {
             <HolidayGroup title={`Past in ${year}`} holidays={pastHolidays} saving={saving} onEdit={openEditHoliday} onDelete={removeHoliday} empty={`No past holidays in ${year}.`} />
           </div>
         </section>
-        <section className="rounded-[18px] border border-slate-200/80 bg-white p-4 shadow-[0_5px_18px_rgba(15,23,42,.035)] sm:p-5">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,.045)] sm:p-5">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="font-['Poppins',sans-serif] text-[13px] font-semibold text-slate-900">Working-day rules</h2>
-            <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-[9px] font-semibold text-violet-700"><LockKeyhole size={10} />Office settings</span>
+            <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold text-slate-900">Working-day rules</h2>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-800"><LockKeyhole size={14} />Office settings</span>
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[9px] font-semibold text-slate-600">Weekends: {formatWeekends(weekendDays)}</span>
-            <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[9px] font-semibold text-slate-600">Grace {office?.graceMinutes ?? 15} min</span>
+            <span className="rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700">Weekends: {formatWeekends(weekendDays)}</span>
+            <span className="rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700">Grace {office?.graceMinutes ?? 15} min</span>
           </div>
-          <p className="mt-2.5 flex items-start gap-1.5 text-[9px] leading-4 text-slate-500"><Info size={12} className="mt-0.5 shrink-0" />Holidays here are skipped in leave-day calculations and attendance automation.</p>
+          <p className="mt-2.5 flex items-start gap-1.5 text-[13px] leading-[1.5] text-slate-600"><Info size={15} className="mt-0.5 shrink-0 text-violet-800" />Holidays here are skipped in leave-day calculations and attendance automation.</p>
         </section>
       </aside>
     </div>
@@ -405,28 +405,28 @@ export default function AdminCalendarPage() {
 }
 
 function SummaryPill({ color, value, label, plural }) {
-  const tone = color === "amber" ? "bg-amber-500" : color === "slate" ? "bg-slate-400" : "bg-violet-500";
-  return <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5 text-[9px] text-slate-600"><span className={`size-1.5 rounded-full ${tone}`} /><strong className="text-slate-800">{value}</strong>{value === 1 ? label : plural || label}</span>;
+  const tone = color === "amber" ? "bg-amber-700" : color === "slate" ? "bg-slate-500" : "bg-violet-600";
+  return <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700"><span className={`size-2 rounded-full ${tone}`} /><strong className="text-slate-900">{value}</strong>{value === 1 ? label : plural || label}</span>;
 }
 
 function HolidayGroup({ title, holidays, saving, onEdit, onDelete, empty }) {
   return <div>
-    <h3 className="mb-1.5 text-[9px] font-bold uppercase tracking-[.08em] text-slate-400">{title}</h3>
+    <h3 className="mb-2 text-[13px] font-semibold text-slate-700">{title}</h3>
     {holidays.length ? <div className="divide-y divide-slate-100">
       {holidays.map((holiday) => <div key={holiday._id} className="flex items-center gap-2 py-2">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-50 text-center text-amber-700">
-          <span><strong className="block font-['Poppins',sans-serif] text-[12px] leading-3">{localDate(holiday.date).format("DD")}</strong><small className="text-[7px] font-bold uppercase">{localDate(holiday.date).format("MMM")}</small></span>
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-amber-50 text-center text-amber-800">
+          <span><strong className="block font-['Poppins',sans-serif] text-[14px] leading-4">{localDate(holiday.date).format("DD")}</strong><small className="text-xs font-semibold">{localDate(holiday.date).format("MMM")}</small></span>
         </span>
         <span className="min-w-0 flex-1">
-          <strong className="block truncate text-[10px] font-semibold text-slate-800">{holiday.name}</strong>
-          <span className="block truncate text-[9px] text-slate-400">{holidayRangeLabel(holiday)}</span>
+          <strong className="block truncate text-[13px] font-semibold text-slate-800">{holiday.name}</strong>
+          <span className="block truncate text-xs text-slate-600">{holidayRangeLabel(holiday)}</span>
         </span>
         <div className="flex shrink-0 items-center gap-1">
-          <button type="button" aria-label={`Edit ${holiday.name}`} onClick={() => onEdit(holiday)} className="grid size-7 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"><Pencil size={12} /></button>
-          <button type="button" aria-label={`Delete ${holiday.name}`} onClick={() => onDelete(holiday)} disabled={saving} className="grid size-7 place-items-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={12} /></button>
+          <button type="button" aria-label={`Edit ${holiday.name}`} onClick={() => onEdit(holiday)} className="grid size-9 place-items-center rounded-lg border border-slate-300 text-slate-600 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-800"><Pencil size={15} /></button>
+          <button type="button" aria-label={`Delete ${holiday.name}`} onClick={() => onDelete(holiday)} disabled={saving} className="grid size-9 place-items-center rounded-lg border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:opacity-50"><Trash2 size={15} /></button>
         </div>
       </div>)}
-    </div> : <p className="rounded-lg bg-slate-50 px-2.5 py-3 text-[9px] text-slate-400">{empty}</p>}
+    </div> : <p className="rounded-lg bg-slate-50 px-3 py-3 text-[13px] text-slate-600">{empty}</p>}
   </div>;
 }
 
@@ -446,30 +446,30 @@ function HolidayDialog({ form, editing, saving, onChange, onClose, onSubmit }) {
   });
 
   return <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/45 p-3 sm:p-5" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) onClose(); }}>
-    <section role="dialog" aria-modal="true" aria-labelledby="holiday-dialog-title" className="my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/60 bg-white shadow-2xl sm:max-h-[calc(100dvh-2.5rem)]">
+    <section role="dialog" aria-modal="true" aria-labelledby="holiday-dialog-title" className="my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-2.5rem)]">
       <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-6">
         <div className="min-w-0">
-          <h2 id="holiday-dialog-title" className="font-['Poppins',sans-serif] text-[17px] font-semibold text-slate-900">{editing ? "Edit holiday" : "Add holiday"}</h2>
-          <p className="mt-1 text-[10px] leading-4 text-slate-500">{editing ? "Update this organization holiday." : "Choose the first and last day. The holiday will cover every date in this range."}</p>
+          <h2 id="holiday-dialog-title" className="font-['Poppins',sans-serif] text-xl font-semibold text-slate-900">{editing ? "Edit holiday" : "Add holiday"}</h2>
+          <p className="mt-1 text-[13px] leading-[1.5] text-slate-600">{editing ? "Update this organization holiday." : "Choose the first and last day. The holiday will cover every date in this range."}</p>
         </div>
-        <button type="button" onClick={onClose} disabled={saving} aria-label="Close dialog" className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-50"><X size={15} /></button>
+        <button type="button" onClick={onClose} disabled={saving} aria-label="Close dialog" className="grid size-10 shrink-0 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 disabled:opacity-50"><X size={18} /></button>
       </header>
       <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-6">
-          <fieldset className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4">
+          <fieldset className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
             <legend className="sr-only">Holiday details</legend>
-            <div className="mb-3 text-[10px] font-bold uppercase tracking-[.08em] text-slate-400">Holiday details</div>
+            <div className="mb-3 text-[13px] font-semibold text-slate-700">Holiday details</div>
             <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-              <label className="min-w-0 text-[10px] font-semibold text-slate-700 sm:col-span-2">Holiday name<input autoFocus required maxLength={150} value={form.name} onChange={(event) => updateHoliday("name", event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-normal outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100" placeholder="e.g. Independence Day" /></label>
-              <label className="min-w-0 text-[10px] font-semibold text-slate-700">From<input required type="date" min={editing && form.from < todayKey() ? form.from : todayKey()} value={form.from} onChange={(event) => updateHoliday("from", event.target.value)} className="mt-1.5 h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-normal outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100 sm:px-3" /></label>
-              <label className="min-w-0 text-[10px] font-semibold text-slate-700">To<input required type="date" min={editing && form.from < todayKey() ? form.from : todayKey()} value={form.to} onChange={(event) => updateHoliday("to", event.target.value)} className="mt-1.5 h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-normal outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100 sm:px-3" /></label>
-              <label className="min-w-0 text-[10px] font-semibold text-slate-700 sm:col-span-2">Description <span className="font-normal text-slate-400">(optional)</span><textarea rows={3} maxLength={500} value={form.description} onChange={(event) => updateHoliday("description", event.target.value)} className="mt-1.5 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-normal outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100" placeholder="Add helpful details" /></label>
+              <label className="min-w-0 text-[14px] font-semibold text-slate-700 sm:col-span-2">Holiday name<input autoFocus required maxLength={150} value={form.name} onChange={(event) => updateHoliday("name", event.target.value)} className="mt-1.5 h-11 w-full rounded-lg border border-slate-400 bg-[#FBFAFF] px-3 text-[16px] font-normal text-slate-800 outline-none transition focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]" placeholder="e.g. Independence Day" /></label>
+              <label className="min-w-0 text-[14px] font-semibold text-slate-700">From<input required type="date" min={editing && form.from < todayKey() ? form.from : todayKey()} value={form.from} onChange={(event) => updateHoliday("from", event.target.value)} className="mt-1.5 h-11 w-full min-w-0 rounded-lg border border-slate-400 bg-[#FBFAFF] px-2 text-[16px] font-normal text-slate-800 outline-none transition focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:px-3 sm:text-[14px]" /></label>
+              <label className="min-w-0 text-[14px] font-semibold text-slate-700">To<input required type="date" min={editing && form.from < todayKey() ? form.from : todayKey()} value={form.to} onChange={(event) => updateHoliday("to", event.target.value)} className="mt-1.5 h-11 w-full min-w-0 rounded-lg border border-slate-400 bg-[#FBFAFF] px-2 text-[16px] font-normal text-slate-800 outline-none transition focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:px-3 sm:text-[14px]" /></label>
+              <label className="min-w-0 text-[14px] font-semibold text-slate-700 sm:col-span-2">Description <span className="font-normal text-slate-500">(optional)</span><textarea rows={3} maxLength={500} value={form.description} onChange={(event) => updateHoliday("description", event.target.value)} className="mt-1.5 w-full resize-y rounded-lg border border-slate-400 bg-[#FBFAFF] px-3 py-2 text-[16px] font-normal text-slate-800 outline-none transition focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]" placeholder="Add helpful details" /></label>
             </div>
           </fieldset>
         </div>
         <footer className="flex flex-col-reverse gap-2 border-t border-slate-100 bg-white px-4 py-3 sm:flex-row sm:justify-end sm:px-6">
-          <button type="button" onClick={onClose} disabled={saving} className="h-9 rounded-lg border border-slate-200 px-4 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
-          <button type="submit" disabled={saving} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-violet-700 px-4 text-[10px] font-semibold text-white shadow-sm hover:bg-violet-800 disabled:opacity-60">{saving ? "Saving..." : editing ? "Save changes" : "Add holiday"}</button>
+          <button type="button" onClick={onClose} disabled={saving} className="h-10 rounded-lg border border-slate-300 px-4 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+          <button type="submit" disabled={saving} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-[linear-gradient(90deg,#6A0DAD_0%,#7C3AED_100%)] px-4 font-['Poppins',sans-serif] text-[15px] font-semibold text-white shadow-sm transition hover:brightness-105 disabled:opacity-60">{saving ? "Saving..." : editing ? "Save changes" : "Add holiday"}</button>
         </footer>
       </form>
     </section>

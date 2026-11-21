@@ -30,27 +30,20 @@ const timeZone = "Asia/Karachi";
 const currentMonth = () => dayjs().tz(timeZone).format("YYYY-MM");
 const pageSize = 8;
 const statusStyles = {
-  present: "bg-emerald-50 text-emerald-700",
-  late: "bg-amber-50 text-amber-700",
-  absent: "bg-rose-50 text-rose-700",
-  leave: "bg-violet-50 text-violet-700",
-  holiday: "bg-sky-50 text-sky-700",
+  present: "bg-green-50 text-green-700",
+  late: "bg-amber-50 text-amber-800",
+  absent: "bg-red-50 text-red-700",
+  leave: "bg-violet-100 text-violet-800",
+  holiday: "bg-violet-50 text-violet-800",
   weekend: "bg-slate-100 text-slate-600",
   pending: "bg-slate-100 text-slate-500",
   notEligible: "bg-slate-100 text-slate-500",
 };
 const barSegments = [
-  { key: "present", label: "Present", color: "bg-emerald-500" },
-  { key: "late", label: "Late", color: "bg-amber-500" },
-  { key: "leave", label: "On leave", color: "bg-violet-500" },
-  { key: "absent", label: "Absent", color: "bg-rose-500" },
-];
-const avatarColors = [
-  "from-violet-500 to-fuchsia-500",
-  "from-rose-500 to-red-600",
-  "from-emerald-500 to-teal-600",
-  "from-sky-500 to-blue-600",
-  "from-amber-500 to-orange-600",
+  { key: "present", label: "Present", color: "bg-green-700" },
+  { key: "late", label: "Late", color: "bg-amber-700" },
+  { key: "leave", label: "On leave", color: "bg-violet-600" },
+  { key: "absent", label: "Absent", color: "bg-red-700" },
 ];
 
 const initials = (name = "") =>
@@ -111,7 +104,7 @@ const matchesStatus = (report, filter) => {
 
 function Trend({ value, unit, favorableWhenUp, previousMonth }) {
   if (value === null) {
-    return <span className="rounded-full bg-slate-100 px-2 py-1 text-[9px] font-semibold text-slate-500">No prior month comparison</span>;
+    return <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">No prior month comparison</span>;
   }
   const improved = value === 0 || (value > 0) === favorableWhenUp;
   const Icon = value < 0 ? TrendingDown : TrendingUp;
@@ -119,8 +112,8 @@ function Trend({ value, unit, favorableWhenUp, previousMonth }) {
     ? `${value > 0 ? "+" : ""}${value.toFixed(1).replace(/\.0$/, "")} pts vs ${previousMonth}`
     : `${value > 0 ? "+" : value < 0 ? "−" : ""}${formatMinutes(Math.abs(value))} vs ${previousMonth}`;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-semibold ${improved ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-      {value === 0 ? <ArrowDown size={11} /> : <Icon size={11} />}
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${improved ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-800"}`}>
+      {value === 0 ? <ArrowDown size={14} /> : <Icon size={14} />}
       {text}
     </span>
   );
@@ -128,19 +121,19 @@ function Trend({ value, unit, favorableWhenUp, previousMonth }) {
 
 function MetricCard({ label, value, icon: Icon, trend, tone = "violet" }) {
   const colors = {
-    violet: "bg-violet-50 text-violet-700",
-    amber: "bg-amber-50 text-amber-700",
-    rose: "bg-rose-50 text-rose-700",
-    emerald: "bg-emerald-50 text-emerald-700",
+    violet: "bg-violet-100 text-violet-800",
+    amber: "bg-amber-50 text-amber-800",
+    rose: "bg-red-50 text-red-700",
+    emerald: "bg-green-50 text-green-700",
   };
   return (
-    <article className="flex min-h-[98px] flex-col justify-between rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_5px_16px_rgba(15,23,42,.035)] sm:p-5">
+    <article className="flex min-h-[116px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,.045)] sm:p-5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-medium text-slate-500 sm:text-[12px]">{label}</p>
-        <span className={`grid size-7 place-items-center rounded-lg ${colors[tone]}`}><Icon size={14} /></span>
+        <p className="text-[13px] font-medium text-slate-600">{label}</p>
+        <span className={`grid size-9 place-items-center rounded-lg ${colors[tone]}`}><Icon size={17} /></span>
       </div>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
-        <strong className="font-['Poppins',sans-serif] text-[24px] font-semibold leading-none tracking-[-.7px] text-slate-900 sm:text-[27px]">{value}</strong>
+        <strong className="font-['Poppins',sans-serif] text-2xl font-semibold leading-none tracking-[-.4px] text-slate-900">{value}</strong>
         {trend}
       </div>
     </article>
@@ -322,38 +315,38 @@ export default function AdminReportsPage() {
     <main className="w-full min-w-0 font-['Inter',sans-serif] text-slate-800">
       <header className="mb-5 flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
         <div className="min-w-0">
-          <h1 className="font-['Poppins',sans-serif] text-[24px] font-semibold leading-tight tracking-[-.5px] text-slate-900 sm:text-[27px]">Reports</h1>
-          <p className="mt-1 text-[11px] text-slate-500 sm:text-[12px]">Monthly attendance summaries and trends.</p>
+          <h1 className="font-['Poppins',sans-serif] text-[30px] font-semibold leading-[1.25] tracking-[-.6px] text-slate-900">Reports</h1>
+          <p className="mt-1 text-[14px] leading-[1.5] text-slate-600 sm:text-[15px]">Monthly attendance summaries and trends.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex h-9 items-center rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-            <button type="button" onClick={() => setMonthByOffset(-1)} aria-label="Previous month" className="grid size-7 place-items-center rounded-lg text-slate-500 transition hover:bg-violet-50 hover:text-violet-700"><ChevronLeft size={15} /></button>
-            <label className="relative flex h-7 min-w-[125px] cursor-pointer items-center justify-center px-2 text-[11px] font-semibold text-slate-700 sm:min-w-[145px] sm:text-[12px]">
+          <div className="flex h-10 items-center rounded-xl border border-slate-300 bg-white p-1 shadow-sm">
+            <button type="button" onClick={() => setMonthByOffset(-1)} aria-label="Previous month" className="grid size-8 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800"><ChevronLeft size={17} /></button>
+            <label className="relative flex h-8 min-w-[140px] cursor-pointer items-center justify-center px-2 text-[13px] font-semibold text-slate-800 sm:min-w-[155px]">
               <span>{monthLabel}</span>
               <input aria-label="Report month" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" type="month" max={maxMonth} value={month} onChange={(event) => { setMonth(event.target.value); setPage(1); }} />
             </label>
-            <button type="button" onClick={() => setMonthByOffset(1)} aria-label="Next month" disabled={month >= maxMonth} className="grid size-7 place-items-center rounded-lg text-slate-500 transition hover:bg-violet-50 hover:text-violet-700 disabled:cursor-not-allowed disabled:opacity-35"><ChevronRight size={15} /></button>
+            <button type="button" onClick={() => setMonthByOffset(1)} aria-label="Next month" disabled={month >= maxMonth} className="grid size-8 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800 disabled:cursor-not-allowed disabled:opacity-35"><ChevronRight size={17} /></button>
           </div>
-          <button type="button" onClick={download} disabled={exporting || loading} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7116b9] to-[#853de8] px-3.5 text-[11px] font-semibold text-white shadow-[0_6px_15px_rgba(112,22,185,.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4">
-            {exporting ? <LoaderCircle className="animate-spin" size={14} /> : <Download size={14} />}
+          <button type="button" onClick={download} disabled={exporting || loading} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(90deg,#6A0DAD_0%,#7C3AED_100%)] px-4 font-['Poppins',sans-serif] text-[15px] font-semibold text-white shadow-[0_6px_16px_rgba(106,13,173,.2)] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:cursor-not-allowed disabled:opacity-60">
+            {exporting ? <LoaderCircle className="animate-spin" size={16} /> : <Download size={16} />}
             {exporting ? "Exporting..." : "Export report"}
           </button>
-          <button type="button" aria-label="Notifications" className="relative grid size-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm hover:text-violet-700"><Bell size={15} /><span className="absolute right-2 top-2 size-1.5 rounded-full bg-rose-500" /></button>
-          <div className="flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-3 shadow-sm">
-            <span className="grid size-7 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-purple-700 font-['Poppins',sans-serif] text-[9px] font-semibold text-white">{initials(avatarName)}</span>
-            <span className="max-w-16 truncate text-[10px] font-medium text-slate-700 sm:max-w-24 sm:text-[11px]">{avatarName.split(" ")[0]}</span>
+          <button type="button" aria-label="Notifications" className="relative grid size-10 place-items-center rounded-xl border border-slate-300 bg-white text-slate-600 shadow-sm transition hover:bg-violet-50 hover:text-violet-800"><Bell size={17} /><span className="absolute right-2 top-2 size-2 rounded-full bg-red-700" /></button>
+          <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
+            <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(avatarName)}</span>
+            <span className="max-w-16 truncate text-[13px] font-medium text-slate-700 sm:max-w-24">{avatarName.split(" ")[0]}</span>
           </div>
         </div>
       </header>
 
       <section className="mb-4 grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(340px,1fr)] xl:gap-4">
-        <article className="min-w-0 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,.04)] sm:p-5">
+        <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,.045)]">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h2 className="font-['Poppins',sans-serif] text-[14px] font-semibold text-slate-900">Daily attendance</h2>
-              <p className="mt-1 text-[9px] text-slate-500 sm:text-[10px]">{loading ? "Updating daily totals…" : `Working days ${chartRangeLabel} · weekends skipped`}</p>
+              <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold text-slate-900">Daily attendance</h2>
+              <p className="mt-1 text-xs text-slate-600">{loading ? "Updating daily totals…" : `Working days ${chartRangeLabel} · weekends skipped`}</p>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-violet-50 px-2.5 py-1.5 text-[9px] font-semibold text-violet-700"><Users size={12} />{reports.length} employees</span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-800"><Users size={15} />{reports.length} employees</span>
           </div>
           {loading ? (
             <div className="grid h-[145px] place-items-center"><LoaderCircle className="animate-spin text-violet-600" size={21} /></div>
@@ -364,7 +357,7 @@ export default function AdminReportsPage() {
                   const total = day.present + day.late + day.leave + day.absent;
                   return (
                     <div className="flex min-w-0 flex-1 flex-col items-center gap-1" key={day.date}>
-                      <span className="text-[8px] text-slate-400">{total}</span>
+                      <span className="text-xs text-slate-600">{total}</span>
                       <div className="flex h-[92px] w-full max-w-[28px] flex-col-reverse overflow-hidden rounded-t-[3px] bg-slate-100 sm:h-[104px]">
                         {barSegments.map((segment) => day[segment.key] > 0 && (
                           <span
@@ -375,7 +368,7 @@ export default function AdminReportsPage() {
                           />
                         ))}
                       </div>
-                      <span className="text-[8px] font-medium text-slate-500">{formatDate(day.date, "D")}</span>
+                      <span className="text-xs font-medium text-slate-600">{formatDate(day.date, "D")}</span>
                     </div>
                   );
                 })}
@@ -383,12 +376,12 @@ export default function AdminReportsPage() {
             </div>
           ) : (
             <div className="grid h-[145px] place-items-center text-center">
-              <p className="text-[11px] text-slate-400">Attendance totals will appear after the first working day.</p>
+              <p className="text-[13px] text-slate-600">Attendance totals will appear after the first working day.</p>
             </div>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-100 pt-2">
-            {barSegments.map((segment) => <span className="inline-flex items-center gap-1 text-[9px] text-slate-500" key={segment.key}><span className={`size-2 rounded-sm ${segment.color}`} />{segment.label}</span>)}
-            {chartDays.length > 0 && <span className="ml-auto text-[9px] text-slate-400">{formatDate(chartDays[chartDays.length - 1].date, "D MMM")} to date</span>}
+            {barSegments.map((segment) => <span className="inline-flex items-center gap-1.5 text-xs text-slate-600" key={segment.key}><span className={`size-2 rounded-sm ${segment.color}`} />{segment.label}</span>)}
+            {chartDays.length > 0 && <span className="ml-auto text-xs text-slate-600">{formatDate(chartDays[chartDays.length - 1].date, "D MMM")} to date</span>}
           </div>
         </article>
 
@@ -424,27 +417,27 @@ export default function AdminReportsPage() {
         </div>
       </section>
 
-      <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_6px_18px_rgba(15,23,42,.04)]">
+      <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,.045)]">
         <div className="flex flex-col justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5 lg:flex-row lg:items-center">
           <div className="flex items-center gap-2.5">
-            <span className="grid size-8 place-items-center rounded-lg bg-violet-50 text-violet-700"><FileBarChart size={15} /></span>
+            <span className="grid size-10 place-items-center rounded-lg bg-violet-100 text-violet-800"><FileBarChart size={18} /></span>
             <div>
-              <h2 className="font-['Poppins',sans-serif] text-[14px] font-semibold text-slate-900">Employee summary</h2>
-              <p className="mt-0.5 text-[9px] text-slate-500">{loading ? "Loading employee data…" : `${filteredReports.length} of ${reports.length} employees`}</p>
+              <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold text-slate-900">Employee summary</h2>
+              <p className="mt-0.5 text-xs text-slate-600">{loading ? "Loading employee data…" : `${filteredReports.length} of ${reports.length} employees`}</p>
             </div>
           </div>
           <div className="grid gap-2 min-[520px]:grid-cols-[minmax(180px,1.4fr)_minmax(135px,1fr)_minmax(125px,1fr)] lg:w-auto lg:min-w-[480px]">
             <label className="relative block min-w-0">
-              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-violet-500" size={14} />
-              <input className="h-9 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[10px] outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:ring-4 focus:ring-violet-100" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search employee" aria-label="Search employee" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-violet-800" size={16} />
+              <input className="h-11 w-full rounded-xl border border-slate-400 bg-[#FBFAFF] pl-10 pr-3 text-[16px] text-slate-800 outline-none transition placeholder:text-slate-500 focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search employee" aria-label="Search employee" />
             </label>
             <label className="sr-only" htmlFor="report-department">Department</label>
-            <select id="report-department" className="h-9 min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-[10px] text-slate-700 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100" value={department} onChange={(event) => { setDepartment(event.target.value); setPage(1); }}>
+            <select id="report-department" className="h-11 min-w-0 rounded-xl border border-slate-400 bg-[#FBFAFF] px-3 text-[16px] text-slate-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]" value={department} onChange={(event) => { setDepartment(event.target.value); setPage(1); }}>
               <option value="">Department: All</option>
               {departments.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
             <label className="sr-only" htmlFor="report-status">Status</label>
-            <select id="report-status" className="h-9 min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-[10px] text-slate-700 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}>
+            <select id="report-status" className="h-11 min-w-0 rounded-xl border border-slate-400 bg-[#FBFAFF] px-3 text-[16px] text-slate-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}>
               <option value="all">Status: All</option>
               <option value="late">Has late days</option>
               <option value="absent">Has absences</option>
@@ -459,15 +452,15 @@ export default function AdminReportsPage() {
           <div className="grid min-h-[280px] place-items-center"><LoaderCircle className="animate-spin text-violet-600" size={23} /></div>
         ) : reports.length === 0 ? (
           <div className="grid min-h-[260px] place-items-center px-5 text-center">
-            <div><span className="mx-auto grid size-11 place-items-center rounded-2xl bg-slate-100 text-slate-400"><Users size={20} /></span><p className="mt-3 text-[12px] font-semibold text-slate-700">No employee reports for {monthLabel}</p><p className="mt-1 text-[10px] text-slate-400">Approved employee attendance will appear here.</p></div>
+            <div><span className="mx-auto grid size-11 place-items-center rounded-2xl bg-violet-50 text-violet-800"><Users size={20} /></span><p className="mt-3 text-[14px] font-semibold text-slate-800">No employee reports for {monthLabel}</p><p className="mt-1 text-[13px] text-slate-600">Approved employee attendance will appear here.</p></div>
           </div>
         ) : filteredReports.length === 0 ? (
-          <div className="grid min-h-[210px] place-items-center px-5 text-center"><p className="text-[11px] text-slate-400">No employees match the selected filters.</p></div>
+          <div className="grid min-h-[210px] place-items-center px-5 text-center"><p className="text-[13px] text-slate-600">No employees match the selected filters.</p></div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[960px] text-left">
-                <thead className="bg-white text-[9px] font-semibold text-slate-400">
+                <thead className="bg-violet-50/60 text-xs font-semibold text-slate-700">
                   <tr className="border-b border-slate-100">
                     <th className="px-4 py-3 sm:px-5">Employee</th>
                     <th className="px-3 py-3">Department</th>
@@ -486,37 +479,37 @@ export default function AdminReportsPage() {
                     <th className="px-3 py-3"><span className="sr-only">Details</span></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-[10px]">
-                  {visibleReports.map((report, index) => {
+                <tbody className="divide-y divide-slate-100 text-[13px]">
+                  {visibleReports.map((report) => {
                     const { employee, summary } = report;
-                    const tone = summary.attendancePercent < 80 ? "bg-amber-500" : summary.attendancePercent < 95 ? "bg-violet-500" : "bg-emerald-500";
+                    const tone = summary.attendancePercent < 80 ? "bg-amber-700" : summary.attendancePercent < 95 ? "bg-violet-600" : "bg-green-700";
                     return (
                       <tr className="transition hover:bg-violet-50/35" key={employee.id}>
                         <td className="px-4 py-2 sm:px-5">
                           <button type="button" onClick={() => openDetail(report)} className="flex min-w-0 items-center gap-2.5 text-left">
-                            <span className={`grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-br ${avatarColors[((page - 1) * pageSize + index) % avatarColors.length]} text-[8px] font-bold text-white`}>{initials(employee.name)}</span>
+                            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(employee.name)}</span>
                             <span className="min-w-0">
-                              <span className="block max-w-[180px] truncate text-[10px] font-semibold text-slate-800 hover:text-violet-700">{employee.name}</span>
-                              <span className="block max-w-[180px] truncate text-[9px] text-slate-400">{employee.email}</span>
+                              <span className="block max-w-[180px] truncate text-[13px] font-semibold text-slate-800 hover:text-violet-800">{employee.name}</span>
+                              <span className="block max-w-[180px] truncate text-xs text-slate-600">{employee.email}</span>
                             </span>
                           </button>
                         </td>
-                        <td className="px-3 py-2 text-[10px] text-slate-500">{employee.department || "General"}</td>
+                        <td className="px-3 py-2 text-slate-700">{employee.department || "General"}</td>
                         <td className="px-3 py-2 text-center text-slate-600">{summary.workingDays}</td>
-                        <td className="px-3 py-2 text-center font-semibold text-emerald-700">{summary.present}</td>
-                        <td className="px-3 py-2 text-center font-semibold text-amber-700">{summary.late}</td>
-                        <td className={`px-3 py-2 text-center font-semibold ${summary.absent ? "text-rose-600" : "text-slate-300"}`}>{summary.absent}</td>
-                        <td className="px-3 py-2 text-center font-semibold text-violet-700">{summary.leave}</td>
-                        <td className={`px-3 py-2 text-center ${summary.missingCheckOuts ? "font-semibold text-amber-700" : "text-slate-300"}`}>{summary.missingCheckOuts}</td>
+                        <td className="px-3 py-2 text-center font-semibold text-green-700">{summary.present}</td>
+                        <td className="px-3 py-2 text-center font-semibold text-amber-800">{summary.late}</td>
+                        <td className={`px-3 py-2 text-center font-semibold ${summary.absent ? "text-red-700" : "text-slate-500"}`}>{summary.absent}</td>
+                        <td className="px-3 py-2 text-center font-semibold text-violet-800">{summary.leave}</td>
+                        <td className={`px-3 py-2 text-center ${summary.missingCheckOuts ? "font-semibold text-amber-800" : "text-slate-500"}`}>{summary.missingCheckOuts}</td>
                         <td className="px-3 py-2">
                           <div className="flex min-w-[86px] items-center gap-2">
-                            <span className="h-1.5 min-w-10 flex-1 overflow-hidden rounded-full bg-slate-100"><span className={`block h-full rounded-full ${tone}`} style={{ width: `${Math.min(100, summary.attendancePercent)}%` }} /></span>
+                            <span className="h-2 min-w-10 flex-1 overflow-hidden rounded-full bg-slate-200"><span className={`block h-full rounded-full ${tone}`} style={{ width: `${Math.min(100, summary.attendancePercent)}%` }} /></span>
                             <span className="w-8 text-right font-semibold text-slate-700">{Math.round(summary.attendancePercent)}%</span>
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-2 text-slate-600">{formatHours(summary.workedHours)}</td>
                         <td className="px-3 py-2">
-                          <button type="button" onClick={() => openDetail(report)} aria-label={`View ${employee.name} details`} className="grid size-7 place-items-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"><ChevronRight size={14} /></button>
+                          <button type="button" onClick={() => openDetail(report)} aria-label={`View ${employee.name} details`} className="grid size-9 place-items-center rounded-lg border border-slate-300 text-slate-600 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-800"><ChevronRight size={16} /></button>
                         </td>
                       </tr>
                     );
@@ -525,18 +518,18 @@ export default function AdminReportsPage() {
               </table>
             </div>
             <footer className="flex flex-col justify-between gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
-              <p className="text-[9px] text-slate-500">
+              <p className="text-xs text-slate-600">
                 Showing {filteredReports.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filteredReports.length)} of {filteredReports.length} employees · {chartDays.length} working days so far
               </p>
               <nav className="flex items-center gap-1" aria-label="Report pages">
-                <button type="button" disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} aria-label="Previous page" className="grid size-7 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-violet-50 disabled:opacity-40"><ChevronLeft size={13} /></button>
+                <button type="button" disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} aria-label="Previous page" className="grid size-9 place-items-center rounded-lg border border-slate-300 text-slate-600 hover:bg-violet-50 disabled:opacity-40"><ChevronLeft size={16} /></button>
                 {pageNumbers.map((number, index) => (
                   <span className="contents" key={number}>
-                    {index > 0 && number - pageNumbers[index - 1] > 1 && <span className="px-1 text-[10px] text-slate-400">…</span>}
-                    <button type="button" aria-current={page === number ? "page" : undefined} onClick={() => setPage(number)} className={`grid size-7 place-items-center rounded-lg text-[10px] font-semibold ${page === number ? "bg-gradient-to-r from-[#7116b9] to-[#853de8] text-white shadow-sm" : "border border-slate-200 bg-white text-slate-600 hover:bg-violet-50"}`}>{number}</button>
+                    {index > 0 && number - pageNumbers[index - 1] > 1 && <span className="px-1 text-xs text-slate-600">…</span>}
+                    <button type="button" aria-current={page === number ? "page" : undefined} onClick={() => setPage(number)} className={`grid size-9 place-items-center rounded-lg border text-xs font-semibold ${page === number ? "border-violet-300 bg-violet-100 text-violet-800 shadow-sm" : "border-slate-300 bg-white text-slate-700 hover:bg-violet-50"}`}>{number}</button>
                   </span>
                 ))}
-                <button type="button" disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} aria-label="Next page" className="grid size-7 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-violet-50 disabled:opacity-40"><ChevronRight size={13} /></button>
+                <button type="button" disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} aria-label="Next page" className="grid size-9 place-items-center rounded-lg border border-slate-300 text-slate-600 hover:bg-violet-50 disabled:opacity-40"><ChevronRight size={16} /></button>
               </nav>
             </footer>
           </>
@@ -545,16 +538,16 @@ export default function AdminReportsPage() {
 
       {selected && (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/45 p-3 sm:p-5" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="report-detail-title" className="my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2.5rem)]">
-            <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-6">
+          <section role="dialog" aria-modal="true" aria-labelledby="report-detail-title" className="my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-2.5rem)]">
+            <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-violet-100 font-semibold text-violet-700">{initials(selected.employee?.name)}</span>
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(selected.employee?.name)}</span>
                 <div className="min-w-0">
-                  <h2 id="report-detail-title" className="truncate font-['Poppins',sans-serif] text-[15px] font-semibold text-slate-900">{selected.employee?.name || "Employee detail"}</h2>
-                  <p className="truncate text-[10px] text-slate-500">{selected.employee?.email} · {dayjs(`${selected.month}-01`).format("MMMM YYYY")}</p>
+                  <h2 id="report-detail-title" className="truncate font-['Poppins',sans-serif] text-xl font-semibold text-slate-900">{selected.employee?.name || "Employee detail"}</h2>
+                  <p className="truncate text-[13px] text-slate-600">{selected.employee?.email} · {dayjs(`${selected.month}-01`).format("MMMM YYYY")}</p>
                 </div>
               </div>
-              <button type="button" onClick={closeDetail} aria-label="Close employee details" className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><X size={16} /></button>
+              <button type="button" onClick={closeDetail} aria-label="Close employee details" className="grid size-10 shrink-0 place-items-center rounded-lg text-slate-600 transition hover:bg-violet-50 hover:text-violet-800"><X size={18} /></button>
             </header>
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
               {detailLoading ? <div className="grid min-h-40 place-items-center"><LoaderCircle className="animate-spin text-violet-600" size={22} /></div> : (
@@ -566,28 +559,28 @@ export default function AdminReportsPage() {
                     <DetailStat label="Missing check-outs" value={selected.summary?.missingCheckOuts ?? "—"} />
                   </div>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <h3 className="text-[11px] font-semibold text-slate-800">Daily attendance</h3>
-                    <span className="text-[9px] text-slate-400">{selected.daily?.length || 0} dates</span>
+                    <h3 className="text-[14px] font-semibold text-slate-800">Daily attendance</h3>
+                    <span className="text-xs text-slate-600">{selected.daily?.length || 0} dates</span>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {(selected.daily || []).map((day) => (
-                      <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5" key={day.date}>
+                      <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3" key={day.date}>
                         <div className="min-w-0">
-                          <p className="text-[10px] font-semibold text-slate-700">{formatDate(day.date, "ddd, D MMM")}</p>
-                          <p className="mt-1 truncate text-[9px] text-slate-500">
+                          <p className="text-[13px] font-semibold text-slate-800">{formatDate(day.date, "ddd, D MMM")}</p>
+                          <p className="mt-1 truncate text-xs text-slate-600">
                             {day.checkIn ? `${formatTime(day.checkIn)}${day.checkOut ? ` – ${formatTime(day.checkOut)}` : " – No checkout"}` : "No check-in record"}
                             {day.workedMinutes ? ` · ${formatMinutes(day.workedMinutes)}` : ""}
                             {day.lateByMinutes ? ` · ${day.lateByMinutes}m late` : ""}
                             {day.missingCheckOut ? " · Missing checkout" : ""}
                           </p>
                         </div>
-                        <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold capitalize ${statusStyles[day.status] || statusStyles.pending}`}>
+                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusStyles[day.status] || statusStyles.pending}`}>
                           {day.status === "notEligible" ? "Not eligible" : day.status}
                           {day.leaveDays ? ` · ${day.leaveDays}d${day.leavePeriod ? ` ${day.leavePeriod}` : ""}` : ""}
                         </span>
                       </div>
                     ))}
-                    {!selected.daily?.length && <p className="col-span-full rounded-xl bg-slate-50 px-3 py-8 text-center text-[10px] text-slate-400">No daily attendance records for this month.</p>}
+                    {!selected.daily?.length && <p className="col-span-full rounded-xl bg-slate-50 px-3 py-8 text-center text-[13px] text-slate-600">No daily attendance records for this month.</p>}
                   </div>
                 </>
               )}
@@ -600,5 +593,5 @@ export default function AdminReportsPage() {
 }
 
 function DetailStat({ label, value }) {
-  return <div className="rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5"><p className="text-[9px] text-slate-500">{label}</p><strong className="mt-1 block truncate text-[12px] font-semibold text-slate-900">{value}</strong></div>;
+  return <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3"><p className="text-xs text-slate-600">{label}</p><strong className="mt-1 block truncate font-['Poppins',sans-serif] text-[15px] font-semibold text-slate-900">{value}</strong></div>;
 }
