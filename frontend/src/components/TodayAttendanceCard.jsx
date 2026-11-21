@@ -137,7 +137,7 @@ export default function TodayAttendanceCard({
             ) : (
               <LogIn size={15} aria-hidden="true" />
             )}
-            {working ? "Reading location..." : actionLabel}
+            {working ? "Processing..." : actionLabel}
           </button>
           {actionDisabled && reason && (
             <span className="max-w-[220px] text-[12px] leading-4 text-purple-100" title={reason}>

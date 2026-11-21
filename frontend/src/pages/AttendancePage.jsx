@@ -22,6 +22,7 @@ import { useAuth } from "../context/AuthContext";
 import TodayAttendanceCard from "../components/TodayAttendanceCard";
 import { submitAttendanceAction } from "./attendanceAction";
 import useToastMessage from "../hooks/useToastMessage";
+import useAttendanceWhatsApp from "../hooks/useAttendanceWhatsApp";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -50,12 +51,14 @@ const dateValue = (value, format = "DD MMM YYYY") =>
 
 export default function AttendancePage({ embedded = false }) {
   const { user, logout } = useAuth();
+  const { shareAttendance } = useAttendanceWhatsApp(user);
   const [now, setNow] = useState(() => Date.now());
   const currentDate = dateInput(now);
   const [today, setToday] = useState(null);
   const [office, setOffice] = useState(null);
   const [history, setHistory] = useState([]);
   const historyRequestId = useRef(0);
+  const workingRef = useRef(false);
   const [from, setFrom] = useState(
     dayjs().tz(zone).startOf("month").format("YYYY-MM-DD"),
   );
@@ -253,11 +256,13 @@ export default function AttendancePage({ embedded = false }) {
   };
 
   const locateAndSubmit = async (action) => {
+    if (workingRef.current) return;
     if (!navigator.geolocation) {
       setError("Your browser does not support GPS location.");
       return;
     }
 
+    workingRef.current = true;
     setWorking(true);
     setError("");
     setHistoryError("");
@@ -266,10 +271,16 @@ export default function AttendancePage({ embedded = false }) {
     try {
       const result = await submitAttendanceAction(action);
       setNotice(result.message);
-      await Promise.all([loadToday(), loadHistory()]);
+      await shareAttendance(action, result.attendance);
+      try {
+        await Promise.all([loadToday(), loadHistory()]);
+      } catch {
+        setError("Attendance was saved, but today's record could not be refreshed.");
+      }
     } catch (actionError) {
       setError(actionError.message || "Attendance action could not be completed.");
     } finally {
+      workingRef.current = false;
       setWorking(false);
     }
   };

@@ -88,12 +88,17 @@ export async function submitAttendanceAction(action) {
     accuracy: position.coords.accuracy,
   };
   try {
-    return action === "in"
+    const result = action === "in"
       ? await checkInAttendance(coordinates)
       : await checkOutAttendance(coordinates);
+    if (!result?.success || !result.attendance) {
+      throw new Error(result?.message || "Attendance action could not be completed.");
+    }
+    return result;
   } catch (requestError) {
     throw new Error(
       requestError.response?.data?.message ||
+        requestError.message ||
         "Attendance action could not be completed.",
       { cause: requestError },
     );

@@ -16,6 +16,7 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import cron from "node-cron";
 import { csrfProtection } from "./middleware/security.js";
 
+
 const app = express();
 app.disable("x-powered-by");
 if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
@@ -26,6 +27,7 @@ const allowedOrigins = new Set(configuredOrigin ? [configuredOrigin] : []);
 if (!isProduction) {
   allowedOrigins.add(`${process.env.CLIENT_URL}`);
 }
+
 
 app.use(cors({
   origin: (origin, callback) => {

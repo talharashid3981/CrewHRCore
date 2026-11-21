@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   AlertTriangle,
@@ -20,6 +20,8 @@ import {
 import TodayAttendanceCard from "../components/TodayAttendanceCard";
 import { submitAttendanceAction } from "./attendanceAction";
 import useToastMessage from "../hooks/useToastMessage";
+import useAttendanceWhatsApp from "../hooks/useAttendanceWhatsApp";
+import { useAuth } from "../context/AuthContext";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -77,6 +79,9 @@ function weekDateKeys(date) {
 }
 
 export default function EmployeeOverview({ onNavigate = () => {} }) {
+  const { user } = useAuth();
+  const { shareAttendance } = useAttendanceWhatsApp(user);
+  const attendanceWorkingRef = useRef(false);
   const [data, setData] = useState(null);
   const [history, setHistory] = useState([]);
   const [attendanceState, setAttendanceState] = useState(null);
@@ -138,13 +143,18 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
 
   const handleAttendanceAction = useCallback(
     async (action) => {
-      if (action !== "in" && action !== "out") return;
+      if (
+        (action !== "in" && action !== "out") ||
+        attendanceWorkingRef.current
+      ) return;
+      attendanceWorkingRef.current = true;
       setAttendanceWorking(true);
       setAttendanceActionError("");
       setAttendanceNotice("");
       try {
         const result = await submitAttendanceAction(action);
         setAttendanceNotice(result.message || "Attendance updated.");
+        await shareAttendance(action, result.attendance);
         await Promise.all([
           loadDashboard(),
           loadHistory(),
@@ -155,10 +165,11 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
           actionError.message || "Attendance action could not be completed.",
         );
       } finally {
+        attendanceWorkingRef.current = false;
         setAttendanceWorking(false);
       }
     },
-    [loadAttendanceState, loadDashboard, loadHistory],
+    [loadAttendanceState, loadDashboard, loadHistory, shareAttendance],
   );
 
   useEffect(() => {
