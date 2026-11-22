@@ -26,6 +26,7 @@ const configuredOrigin = process.env.CLIENT_URL?.trim();
 const allowedOrigins = new Set(configuredOrigin ? [configuredOrigin] : []);
 if (!isProduction) {
   allowedOrigins.add(`${process.env.CLIENT_URL}`);
+  allowedOrigins.add("http://127.0.0.1:5173");
 }
 
 

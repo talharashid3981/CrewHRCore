@@ -22,6 +22,7 @@ import { submitAttendanceAction } from "./attendanceAction";
 import useToastMessage from "../hooks/useToastMessage";
 import useAttendanceWhatsApp from "../hooks/useAttendanceWhatsApp";
 import { useAuth } from "../context/AuthContext";
+import { getAttendanceWeekDates } from "../utils/attendanceWeek";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -63,19 +64,6 @@ function workedMinutes(attendance, date, today, now) {
     return Math.max(0, dayjs(now).diff(dayjs(attendance.checkIn), "minute"));
   }
   return attendance.workedMinutes || 0;
-}
-
-function weekDateKeys(date) {
-  const [year, month, day] = date.split("-").map(Number);
-  const current = new Date(Date.UTC(year, month - 1, day));
-  const mondayOffset = (current.getUTCDay() + 6) % 7;
-  current.setUTCDate(current.getUTCDate() - mondayOffset);
-
-  return Array.from({ length: 5 }, (_, index) => {
-    const weekday = new Date(current);
-    weekday.setUTCDate(current.getUTCDate() + index);
-    return weekday.toISOString().slice(0, 10);
-  });
 }
 
 export default function EmployeeOverview({ onNavigate = () => {} }) {
@@ -194,8 +182,8 @@ export default function EmployeeOverview({ onNavigate = () => {} }) {
   const weekData = useMemo(() => {
     if (!data?.date) return { days: [], totalMinutes: 0 };
     const recordsByDate = new Map(history.map((record) => [record.date, record]));
-    const dates = weekDateKeys(data.date);
-    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    const dates = getAttendanceWeekDates(data.date);
+    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     const days = dates.map((date, index) => {
       const attendance =
         date === data.date
@@ -577,7 +565,7 @@ function WeekCard({ days, today, totalMinutes }) {
         </span>
         <div className="absolute inset-x-0 top-[22%] border-t border-dashed border-violet-200" />
         <div className="absolute inset-x-0 bottom-0 border-t border-slate-100" />
-        <div className="absolute inset-x-0 bottom-0 top-5 grid grid-cols-5 gap-2">
+        <div className="absolute inset-x-0 bottom-0 top-5 grid grid-cols-7 gap-1.5 sm:gap-2">
           {days.map((day) => {
             const percent = Math.min(100, (day.minutes / (8 * 60)) * 100);
             return (
@@ -611,7 +599,7 @@ function WeekCard({ days, today, totalMinutes }) {
           })}
         </div>
       </div>
-      <div className="mt-1 grid grid-cols-5 gap-2 text-center text-[12px] text-slate-500">
+      <div className="mt-1 grid grid-cols-7 gap-1.5 text-center text-[12px] text-slate-500 sm:gap-2">
         {days.map((day) => (
           <span key={day.date}>{day.label}</span>
         ))}
