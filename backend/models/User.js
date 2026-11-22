@@ -1,7 +1,16 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { defaultNotificationPreferences } from "../utils/notificationPreferences.js";
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/; 
+const notificationPreferencesSchema = new mongoose.Schema({
+    leaveUpdates: { type: Boolean, default: defaultNotificationPreferences.leaveUpdates },
+    attendanceReminders: {
+        type: Boolean,
+        default: defaultNotificationPreferences.attendanceReminders,
+    },
+    weeklySummary: { type: Boolean, default: defaultNotificationPreferences.weeklySummary },
+}, { _id: false });
 
 
 const userSchema = new mongoose.Schema({
@@ -15,6 +24,14 @@ const userSchema = new mongoose.Schema({
         type : String,
         trim : true,
         maxlength : 2048
+    },
+    profilePicPublicId: {
+        type: String,
+        select: false,
+    },
+    notificationPreferences: {
+        type: notificationPreferencesSchema,
+        default: () => ({}),
     },
     email : {
         type : String ,

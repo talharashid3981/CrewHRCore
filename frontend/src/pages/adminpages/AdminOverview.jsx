@@ -320,7 +320,7 @@ function OnboardingPanel({ onboarding, onNavigate }) {
     </div>
     {unclassified > 0 && <button
       type="button"
-      onClick={() => onNavigate("Employees")}
+      onClick={() => onNavigate("Employees", "unclassified")}
       className="mt-2 w-full rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-left text-xs font-medium leading-[1.4] text-rose-800 hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
     >
       {numberFormat.format(unclassified)} employee status{unclassified === 1 ? "" : "es"} need data review. Open employees.

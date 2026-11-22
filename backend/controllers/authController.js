@@ -10,6 +10,7 @@ import {
   authCookieOptions,
   signAuthToken,
 } from "../utils/sessionSecurity.js";
+import { normalizeNotificationPreferences } from "../utils/notificationPreferences.js";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -61,6 +62,7 @@ const publicUser = (user) => ({
   shift: user.shift,
   shiftStart: user.shiftStart,
   shiftEnd: user.shiftEnd,
+  notificationPreferences: normalizeNotificationPreferences(user.notificationPreferences),
   isActive: user.isActive,
   onboardingStatus: user.onboardingStatus,
   rejectionNote: user.rejectionNote,

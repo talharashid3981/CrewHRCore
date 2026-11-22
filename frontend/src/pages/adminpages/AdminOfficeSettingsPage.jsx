@@ -65,9 +65,6 @@ const sameCoordinates = (first, second) =>
 const sameArray = (first, second) =>
   first.length === second.length && first.every((value, index) => value === second[index]);
 
-const initials = (name = "") =>
-  name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || "AD";
-
 const coordinateLabel = (office) => hasCoordinates(office)
   ? `${Number(office.latitude).toFixed(6).replace(/\.?0+$/, "")}, ${Number(office.longitude).toFixed(6).replace(/\.?0+$/, "")}`
   : "Not configured";
@@ -435,10 +432,6 @@ export default function AdminOfficeSettingsPage({ embedded = false, onNavigate }
             <div className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-xs font-semibold ${!officeLoaded ? "border-slate-200 bg-slate-100 text-slate-600" : savedMeta.isConfigured ? "border-green-200 bg-green-50 text-green-700" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
               <span className={`size-2 rounded-full ${!officeLoaded ? "bg-slate-500" : savedMeta.isConfigured ? "bg-green-700" : "bg-amber-700"}`} />
               {loading ? "Loading" : !officeLoaded ? "Unavailable" : savedMeta.isConfigured ? "Configured" : "Location not configured"}
-            </div>
-            <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
-              <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(user?.name)}</span>
-              <span className="max-w-20 truncate text-[13px] font-medium text-slate-700">{user?.name?.split(" ")[0] || "Admin"}</span>
             </div>
           </div>
         </header>

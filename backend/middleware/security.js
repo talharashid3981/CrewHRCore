@@ -24,6 +24,14 @@ export const inviteLimiter = rateLimit({
   message: { success: false, message: "Too many invitation requests. Please try again later." },
 });
 
+export const profileImageLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { success: false, message: "Too many profile image uploads. Please try again later." },
+});
+
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const safeEqual = (first, second) => {
   const firstBuffer = Buffer.from(first || "");

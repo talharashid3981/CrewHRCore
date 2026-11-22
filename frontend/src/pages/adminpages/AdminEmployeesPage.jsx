@@ -27,25 +27,29 @@ import {
   listEmployees,
   rejectEmployee,
   remindEmployee,
+  repairEmployeeOnboardingStatus,
   setEmployeeStatus,
   updateEmployee,
 } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
 import useToastMessage from "../../hooks/useToastMessage";
 
-const emptySummary = { total: 0, incomplete: 0, pending: 0, approved: 0, rejected: 0, active: 0, inactive: 0 };
+const emptySummary = { total: 0, incomplete: 0, pending: 0, approved: 0, rejected: 0, unclassified: 0, active: 0, inactive: 0 };
 const statusItems = [
   { label: "Total", key: "", countKey: "total" },
   { label: "Incomplete", key: "incomplete", countKey: "incomplete" },
   { label: "Pending review", key: "pending", countKey: "pending" },
   { label: "Approved", key: "approved", countKey: "approved" },
   { label: "Rejected", key: "rejected", countKey: "rejected" },
+  { label: "Needs data review", key: "unclassified", countKey: "unclassified" },
 ];
+const knownStatuses = new Set(["incomplete", "pending", "approved", "rejected"]);
 const statusStyle = {
   approved: "border-green-200 bg-green-50 text-green-700",
   pending: "border-amber-200 bg-amber-50 text-amber-700",
   incomplete: "border-slate-200 bg-slate-50 text-slate-700",
   rejected: "border-red-200 bg-red-50 text-red-700",
+  unclassified: "border-rose-200 bg-rose-50 text-rose-700",
 };
 const pageSize = 8;
 const fieldClass = "h-11 w-full rounded-lg border border-slate-400 bg-[#FBFAFF] px-3 text-[16px] font-normal text-slate-800 outline-none transition placeholder:text-slate-500 focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]";
@@ -219,6 +223,11 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
     `Invitation reminder sent to ${employee.email}.`,
   );
 
+  const repairStatus = (employee) => runAction(
+    () => repairEmployeeOnboardingStatus(employee.id),
+    `${employee.name}'s status was restored.`,
+  );
+
   const sendInvite = async (event) => {
     event.preventDefault();
     setInviteSaving(true);
@@ -237,7 +246,12 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
       return true;
     } catch (requestError) {
       const message = requestError.response?.data?.message || "Unable to invite this employee.";
-      if (requestError.response?.data?.user) await loadEmployees();
+      if (requestError.response?.data?.user) {
+        setInviteForm({ name: "", email: "" });
+        setInviteOpen(false);
+        setOpenMenuId(null);
+        await loadEmployees();
+      }
       setError(message);
       return false;
     } finally {
@@ -311,7 +325,7 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
     </header>
 
     <section className="mb-3 flex gap-2 overflow-x-auto pb-1" aria-label="Filter by onboarding status">
-      {statusItems.map((item) => {
+      {statusItems.filter((item) => item.key !== "unclassified" || summary.unclassified > 0).map((item) => {
         const active = status === item.key;
         return <button
           key={item.label}
@@ -375,6 +389,7 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
               onViewAttendance={() => viewAttendance(employee)}
               onViewNote={() => { setViewingNote(employee); setOpenMenuId(null); }}
               onReminder={() => sendReminder(employee)}
+              onRepairStatus={() => repairStatus(employee)}
               onToggleAccount={() => changeAccountStatus(employee)}
               saving={saving}
             />)}
@@ -391,6 +406,7 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
           onViewAttendance={() => viewAttendance(employee)}
           onViewNote={() => setViewingNote(employee)}
           onReminder={() => sendReminder(employee)}
+          onRepairStatus={() => repairStatus(employee)}
           onToggleAccount={() => changeAccountStatus(employee)}
           saving={saving}
         />)}
@@ -503,7 +519,7 @@ export default function AdminEmployeesPage({ embedded = false, initialStatus = "
   </main>;
 }
 
-function EmployeeTableRow({ employee, openMenuId, setOpenMenuId, onReview, onEdit, onViewAttendance, onViewNote, onReminder, onToggleAccount, saving }) {
+function EmployeeTableRow({ employee, openMenuId, setOpenMenuId, onReview, onEdit, onViewAttendance, onViewNote, onReminder, onRepairStatus, onToggleAccount, saving }) {
   const rowMenuOpen = openMenuId === employee.id;
   return <tr className="h-16 border-b border-slate-100 text-[13px] last:border-0">
     <td className="whitespace-nowrap px-3 py-2 pl-4">
@@ -528,6 +544,7 @@ function EmployeeTableRow({ employee, openMenuId, setOpenMenuId, onReview, onEdi
         {employee.onboardingStatus === "pending" && <button className="inline-flex h-9 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-3 text-[13px] font-semibold text-violet-800 transition hover:bg-violet-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600" onClick={onReview}>Review</button>}
         {employee.onboardingStatus === "incomplete" && <button className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600 disabled:opacity-50" onClick={onReminder} disabled={saving}><Send size={14} />Remind</button>}
         {employee.onboardingStatus === "rejected" && <button className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600" onClick={onViewNote}>View note</button>}
+        {!knownStatuses.has(employee.onboardingStatus) && <button className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-xs font-semibold text-rose-800 transition hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-700 disabled:opacity-50" onClick={onRepairStatus} disabled={saving}>Restore status</button>}
         {employee.onboardingStatus === "approved" && <>
           {!employee.isActive && <button className="inline-flex h-9 items-center justify-center rounded-lg border border-green-200 bg-green-50 px-2.5 text-xs font-semibold text-green-700 transition hover:bg-green-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600" onClick={onToggleAccount} disabled={saving}>Activate</button>}
           <div className="relative" data-employee-actions>
@@ -540,7 +557,7 @@ function EmployeeTableRow({ employee, openMenuId, setOpenMenuId, onReview, onEdi
   </tr>;
 }
 
-function EmployeeMobileCard({ employee, onReview, onEdit, onViewAttendance, onViewNote, onReminder, onToggleAccount, saving }) {
+function EmployeeMobileCard({ employee, onReview, onEdit, onViewAttendance, onViewNote, onReminder, onRepairStatus, onToggleAccount, saving }) {
   return <article className="p-4">
     <div className="flex items-start gap-2.5">
       <Avatar employee={employee} />
@@ -562,6 +579,7 @@ function EmployeeMobileCard({ employee, onReview, onEdit, onViewAttendance, onVi
         {employee.onboardingStatus === "pending" && <button className="h-9 rounded-lg border border-violet-200 bg-violet-50 px-3 text-[13px] font-semibold text-violet-800 transition hover:bg-violet-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600" onClick={onReview}>Review</button>}
         {employee.onboardingStatus === "incomplete" && <button className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600 disabled:opacity-50" onClick={onReminder} disabled={saving}>Send reminder</button>}
         {employee.onboardingStatus === "rejected" && <button className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-violet-50 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600" onClick={onViewNote}>View note</button>}
+        {!knownStatuses.has(employee.onboardingStatus) && <button className="h-9 rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-800 transition hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-700 disabled:opacity-50" onClick={onRepairStatus} disabled={saving}>Restore status</button>}
         {employee.onboardingStatus === "approved" && <>
           <button className={iconButtonClass} onClick={onEdit} aria-label="Edit employee"><Pencil size={14} /></button>
           <button className={iconButtonClass} onClick={onViewAttendance} aria-label="View attendance"><CalendarDays size={14} /></button>
@@ -619,8 +637,9 @@ function SelectFilter({ label, value, onChange, children, className = "" }) {
 }
 
 function StatusBadge({ status }) {
-  return <span className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyle[status] || statusStyle.incomplete}`}>
-    {status === "pending" ? "Pending review" : titleCase(status || "incomplete")}
+  const isKnown = knownStatuses.has(status);
+  return <span className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyle[isKnown ? status : "unclassified"]}`}>
+    {!isKnown ? "Needs data review" : status === "pending" ? "Pending review" : titleCase(status)}
   </span>;
 }
 

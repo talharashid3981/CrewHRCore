@@ -31,15 +31,6 @@ const dateAtNoon = (date) => dayjs(`${date}T12:00:00`);
 const currentDate = () => dayjs().tz(timeZone).format("YYYY-MM-DD");
 const eventCoversDate = (event, date) =>
   event.start <= date && (event.to || event.start) >= date;
-const getInitials = (name = "") =>
-  name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join("") || "U";
-
 const formatTime = (value) =>
   value
     ? new Intl.DateTimeFormat("en-GB", {
@@ -850,14 +841,6 @@ export default function EmployeeCalendarView({ embedded = false }) {
               <LockKeyhole size={13} />
               Read-only view
             </span>
-            <div className="flex h-10 items-center gap-2 rounded-full border border-[#E9E5F7] bg-white py-1 pl-1 pr-3 shadow-sm">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-purple-800 text-[12px] font-semibold text-white">
-                {getInitials(user?.name)}
-              </span>
-              <span className="max-w-24 truncate text-[13px] font-semibold text-slate-700">
-                {user?.name?.split(" ")[0] || "Employee"}
-              </span>
-            </div>
           </div>
         </header>
 

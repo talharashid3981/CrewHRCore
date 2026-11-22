@@ -10,6 +10,16 @@ import {
 import officeSettingsModel from "../models/OfficeSettings.js";
 import { shiftSchedulesFrom } from "../utils/shiftSchedules.js";
 import { authCookieName, authCookieOptions } from "../utils/sessionSecurity.js";
+import {
+  deleteProfileImage,
+  uploadProfileImage as uploadCloudinaryProfileImage,
+} from "../services/profileImageService.js";
+import { normalizeNotificationPreferences } from "../utils/notificationPreferences.js";
+import {
+  inferOnboardingStatus,
+  isValidOnboardingStatus,
+  onboardingStatuses,
+} from "../utils/onboardingStatus.js";
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -33,6 +43,11 @@ const onboardingSchema = z.object({
 const profileSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   profilePic: profilePicSchema,
+}).strict();
+const notificationPreferencesSchema = z.object({
+  leaveUpdates: z.boolean(),
+  attendanceReminders: z.boolean(),
+  weeklySummary: z.boolean(),
 }).strict();
 
 const passwordSchema = z.object({
@@ -89,6 +104,7 @@ const publicUser = (user) => ({
   shift: user.shift,
   shiftStart: user.shiftStart,
   shiftEnd: user.shiftEnd,
+  notificationPreferences: normalizeNotificationPreferences(user.notificationPreferences),
   isActive: user.isActive,
   onboardingStatus: user.onboardingStatus,
   rejectionNote: user.rejectionNote,
@@ -112,7 +128,11 @@ const sendEmailInBackground = (promise, label) => {
 
 const employeeFilterFromQuery = ({ status, account, department, search }) => {
   const filter = { role: "employee" };
-  if (["incomplete", "pending", "approved", "rejected"].includes(status)) filter.onboardingStatus = status;
+  if (status === "unclassified") {
+    filter.onboardingStatus = { $nin: onboardingStatuses };
+  } else if (isValidOnboardingStatus(status)) {
+    filter.onboardingStatus = status;
+  }
   if (account === "active") filter.isActive = true;
   if (account === "inactive") filter.isActive = false;
   if (department?.trim()) filter.department = department.trim();
@@ -198,6 +218,85 @@ export const updateMyProfile = async (req, res) => {
   }
 };
 
+export const updateMyNotificationPreferences = async (req, res) => {
+  try {
+    const parsed = notificationPreferencesSchema.safeParse(req.body);
+    if (!parsed.success) return validationError(res, parsed);
+    req.user.notificationPreferences = parsed.data;
+    await req.user.save();
+    return res.status(200).json({
+      success: true,
+      message: "Email notification preferences saved.",
+      user: publicUser(req.user),
+    });
+  } catch (error) {
+    console.error("Update notification preferences failed:", error);
+    return res.status(500).json({ success: false, message: "Unable to save notification preferences." });
+  }
+};
+
+export const uploadMyProfileImage = async (req, res) => {
+  const image = req.body;
+  if (!Buffer.isBuffer(image) || image.length === 0) {
+    return res.status(400).json({ success: false, message: "Choose an image to upload." });
+  }
+  if (image.length > 5 * 1024 * 1024) {
+    return res.status(413).json({ success: false, message: "Profile images must be 5 MB or smaller." });
+  }
+
+  const contentType = req.get("content-type")?.split(";")[0].trim().toLowerCase();
+  const isJpeg = contentType === "image/jpeg"
+    && image[0] === 0xff && image[1] === 0xd8 && image[2] === 0xff;
+  const isPng = contentType === "image/png"
+    && image.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  const isWebp = contentType === "image/webp"
+    && image.toString("ascii", 0, 4) === "RIFF"
+    && image.toString("ascii", 8, 12) === "WEBP";
+  if (!isJpeg && !isPng && !isWebp) {
+    return res.status(400).json({
+      success: false,
+      message: "Choose a valid JPEG, PNG, or WebP image.",
+    });
+  }
+
+  let uploadedImage;
+  let user;
+  let previousPublicId;
+  try {
+    user = await userModel.findById(req.user._id).select("+profilePicPublicId");
+    if (!user) return notFound(res);
+    previousPublicId = user.profilePicPublicId;
+    uploadedImage = await uploadCloudinaryProfileImage(image, contentType);
+    user.profilePic = uploadedImage.url;
+    user.profilePicPublicId = uploadedImage.publicId;
+    await user.save();
+  } catch (error) {
+    if (uploadedImage?.publicId) {
+      try {
+        await deleteProfileImage(uploadedImage.publicId);
+      } catch (cleanupError) {
+        console.error("Failed to clean up an unlinked profile image:", cleanupError.message);
+      }
+    }
+    if (error?.code === "CLOUDINARY_NOT_CONFIGURED") {
+      return res.status(503).json({ success: false, message: "Profile image uploads are not configured." });
+    }
+    console.error("Profile image upload failed:", error.message);
+    return res.status(502).json({ success: false, message: "Unable to upload your profile image. Please try again." });
+  }
+
+  if (previousPublicId && previousPublicId !== uploadedImage.publicId) {
+    void deleteProfileImage(previousPublicId).catch((error) => {
+      console.error("Failed to remove replaced profile image:", error.message);
+    });
+  }
+  return res.status(200).json({
+    success: true,
+    message: "Profile photo updated.",
+    user: publicUser(user),
+  });
+};
+
 export const changeMyPassword = async (req, res) => {
   try {
     const parsed = passwordSchema.safeParse(req.body);
@@ -224,19 +323,23 @@ export const changeMyPassword = async (req, res) => {
 
 export const getSummary = async (req, res) => {
   try {
-    const [total, incomplete, pending, approved, rejected, active, inactive, departments] = await Promise.all([
+    const [total, incomplete, pending, approved, rejected, unclassified, active, inactive, departments] = await Promise.all([
       userModel.countDocuments({ role: "employee" }),
       userModel.countDocuments({ role: "employee", onboardingStatus: "incomplete" }),
       userModel.countDocuments({ role: "employee", onboardingStatus: "pending" }),
       userModel.countDocuments({ role: "employee", onboardingStatus: "approved" }),
       userModel.countDocuments({ role: "employee", onboardingStatus: "rejected" }),
+      userModel.countDocuments({
+        role: "employee",
+        onboardingStatus: { $nin: onboardingStatuses },
+      }),
       userModel.countDocuments({ role: "employee", isActive: true }),
       userModel.countDocuments({ role: "employee", isActive: false }),
       userModel.distinct("department", { role: "employee" }),
     ]);
     return res.status(200).json({
       success: true,
-      summary: { total, incomplete, pending, approved, rejected, active, inactive },
+      summary: { total, incomplete, pending, approved, rejected, unclassified, active, inactive },
       departments: departments.filter(Boolean).sort((left, right) => left.localeCompare(right)),
     });
   } catch (error) {
@@ -252,7 +355,8 @@ export const listUsers = async (req, res) => {
     const pageSize = Math.min(Math.max(Number.parseInt(limit, 10) || 20, 1), 100);
     const filter = employeeFilterFromQuery(req.query);
     const [users, total] = await Promise.all([
-      userModel.find(filter).sort(employeeSortFromQuery(sort)).skip((currentPage - 1) * pageSize).limit(pageSize),
+      userModel.find(filter).sort(employeeSortFromQuery(sort))
+        .skip((currentPage - 1) * pageSize).limit(pageSize).lean(),
       userModel.countDocuments(filter),
     ]);
     return res.status(200).json({
@@ -263,6 +367,38 @@ export const listUsers = async (req, res) => {
   } catch (error) {
     console.error("List users failed:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const repairEmployeeOnboardingStatus = async (req, res) => {
+  try {
+    if (!idIsValid(req.params.id)) return notFound(res);
+    const snapshot = await userModel.findOne({
+      _id: req.params.id,
+      role: "employee",
+    }).select("onboardingStatus onboardingSubmittedAt approvedAt rejectionNote").lean();
+    if (!snapshot) return notFound(res);
+    if (isValidOnboardingStatus(snapshot.onboardingStatus)) {
+      return res.status(409).json({
+        success: false,
+        message: "This employee already has a valid onboarding status.",
+      });
+    }
+
+    const employee = await userModel.findById(snapshot._id);
+    if (!employee) return notFound(res);
+    const repairedStatus = inferOnboardingStatus(snapshot);
+    employee.onboardingStatus = repairedStatus;
+    employee.markModified("onboardingStatus");
+    await employee.save();
+    return res.status(200).json({
+      success: true,
+      message: `Employee status restored to ${repairedStatus}.`,
+      user: publicUser(employee),
+    });
+  } catch (error) {
+    console.error("Repair employee onboarding status failed:", error);
+    return res.status(500).json({ success: false, message: "Unable to repair the employee status." });
   }
 };
 
@@ -316,7 +452,7 @@ export const inviteEmployee = async (req, res) => {
     });
     const clientUrl = (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
     try {
-      await sendEmployeeInviteEmail(user, `${clientUrl}/reset-password?token=${rawToken}`);
+      await sendEmployeeInviteEmail(user, `${clientUrl}/setup-password?token=${rawToken}`);
     } catch (emailError) {
       user.resetPasswordTokenHash = undefined;
       user.resetPasswordExpires = undefined;
@@ -359,7 +495,7 @@ export const remindEmployee = async (req, res) => {
     await user.save({ validateBeforeSave: false });
     const clientUrl = (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
     try {
-      await sendEmployeeInviteEmail(user, `${clientUrl}/reset-password?token=${rawToken}`);
+      await sendEmployeeInviteEmail(user, `${clientUrl}/setup-password?token=${rawToken}`);
     } catch (emailError) {
       user.resetPasswordTokenHash = undefined;
       user.resetPasswordExpires = undefined;

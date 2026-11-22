@@ -44,7 +44,7 @@ const correctionReasons = [
   ["manual_adjustment", "Manual adjustment"],
 ];
 
-export default function AdminAttendanceAutomationPage({ user, onNavigate }) {
+export default function AdminAttendanceAutomationPage({ onNavigate }) {
   const [today] = useState(getKarachiToday);
   const [date, setDate] = useState(today);
   const [search, setSearch] = useState("");
@@ -193,7 +193,6 @@ export default function AdminAttendanceAutomationPage({ user, onNavigate }) {
     { key: "leave", label: "On leave", value: summary?.leave || 0, color: "bg-violet-600" },
   ];
   const totalStatCount = stats.reduce((total, item) => total + item.value, 0);
-  const firstName = user?.name?.trim().split(/\s+/)[0] || "Admin";
   const automation = data?.automation;
   const AutomationStatusIcon = automation?.isHealthy ? CheckCircle2 : AlertCircle;
 
@@ -216,10 +215,6 @@ export default function AdminAttendanceAutomationPage({ user, onNavigate }) {
           {exporting ? <LoaderCircle size={16} className="animate-spin text-violet-800" /> : <Download size={16} className="text-violet-800" />}
           Export
         </button>
-        <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
-          <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(user?.name)}</span>
-          <span className="max-w-20 truncate text-[13px] font-medium text-slate-700">{firstName}</span>
-        </div>
       </div>
     </header>
 
@@ -266,23 +261,23 @@ export default function AdminAttendanceAutomationPage({ user, onNavigate }) {
 
     <div className="grid min-w-0 gap-4 min-[1366px]:grid-cols-[minmax(0,1.78fr)_minmax(270px,.82fr)]">
       <section className="@container/attendance-log min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,.045)]">
-        <div className="flex flex-col gap-2.5 border-b border-slate-100 px-4 py-3 @min-[820px]/attendance-log:flex-row @min-[820px]/attendance-log:items-center @min-[820px]/attendance-log:justify-between sm:px-4">
+        <div className="flex flex-col gap-2.5 border-b border-slate-100 px-4 py-3 sm:px-4">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="font-['Poppins',sans-serif] text-[18px] font-semibold tracking-[-.2px] text-slate-900">Daily log</h2>
             <p className="text-right text-xs text-slate-600 sm:text-left">Open a row for times and record source</p>
           </div>
-          <div className="grid min-w-0 gap-1.5 @min-[460px]/attendance-log:grid-cols-2 @min-[820px]/attendance-log:grid-cols-3 @min-[820px]/attendance-log:flex-1">
+          <div className="grid min-w-0 gap-1.5 @min-[460px]/attendance-log:grid-cols-2 @min-[820px]/attendance-log:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <label className="relative min-w-0 @min-[460px]/attendance-log:col-span-2 @min-[820px]/attendance-log:col-span-1">
               <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-violet-800" />
               <input value={search} onChange={(event) => setFilter(setSearch)(event.target.value)} placeholder="Search employee" className="h-11 w-full rounded-xl border border-slate-400 bg-[#FBFAFF] pl-9 pr-3 text-[16px] text-slate-800 outline-none transition placeholder:text-slate-500 focus:border-violet-600 focus:bg-white focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]" />
             </label>
             <select aria-label="Filter by department" value={department} onChange={(event) => setFilter(setDepartment)(event.target.value)} className="h-11 min-w-0 w-full rounded-xl border border-slate-400 bg-[#FBFAFF] px-3 text-[16px] text-slate-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]">
-              <option value="">Department: All</option>
-              {(data?.departments || []).map((item) => <option key={item} value={item}>Department: {item}</option>)}
+              <option value="">All departments</option>
+              {(data?.departments || []).map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
             <select aria-label="Filter by attendance status" value={status} onChange={(event) => setFilter(setStatus)(event.target.value)} className="h-11 min-w-0 w-full rounded-xl border border-slate-400 bg-[#FBFAFF] px-3 text-[16px] text-slate-800 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 sm:text-[14px]">
-              <option value="">Status: All</option>
-              {Object.keys(statusStyles).map((item) => <option key={item} value={item}>Status: {statusLabel(item)}</option>)}
+              <option value="">All statuses</option>
+              {Object.keys(statusStyles).map((item) => <option key={item} value={item}>{statusLabel(item)}</option>)}
             </select>
           </div>
         </div>

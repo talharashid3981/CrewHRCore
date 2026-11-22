@@ -61,14 +61,14 @@ export default function AdminDashboardpage() {
     navigate("/login");
   };
 
-  const navigateTo = useCallback((target) => {
+  const navigateTo = useCallback((target, nextEmployeeStatus = "") => {
     setMobileMenuOpen(false);
     if (target === "Approvals") {
       setEmployeeStatus("pending");
       setSection("Employees");
       return;
     }
-    if (target === "Employees") setEmployeeStatus("");
+    if (target === "Employees") setEmployeeStatus(nextEmployeeStatus);
     setSection(target);
   }, []);
 
@@ -165,14 +165,6 @@ export default function AdminDashboardpage() {
             <button className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:border-violet-300 hover:bg-violet-50/60 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:opacity-60" onClick={exportReport} disabled={exporting}>
               <Download size={16} className="text-violet-800" />{exporting ? "Preparing..." : "Export report"}
             </button>
-            <button className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(90deg,#6A0DAD_0%,#7C3AED_100%)] px-4 font-['Poppins',sans-serif] text-[15px] font-semibold text-white shadow-[0_6px_16px_rgba(106,13,173,.2)] transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600" onClick={() => navigateTo("Approvals")}>
-              Review approvals
-              {dashboardData?.summary.pending > 0 && <span className="rounded-md bg-white/20 px-1.5 py-0.5 font-['Inter',sans-serif] text-xs">{dashboardData.summary.pending}</span>}
-            </button>
-            <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
-              <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(user?.name)}</span>
-              <span className="max-w-20 truncate text-[13px] font-medium text-slate-700">{firstName}</span>
-            </div>
           </div>
         </header>
         <AdminOverview onDataLoaded={setDashboardData} onNavigate={navigateTo} />
@@ -180,8 +172,8 @@ export default function AdminDashboardpage() {
         {section === "Employees" && <AdminEmployeesPage key={employeeStatus} initialStatus={employeeStatus} embedded />}
         {section === "Office settings" && <Module3SettingsPage embedded onNavigate={navigateTo} />}
         {section === "Calendar" && <div className="-mx-4 -my-5 sm:-mx-6 sm:-my-7 lg:-mx-7"><AdminCalendarPage /></div>}
-        {section === "Attendance" && <AdminAttendanceAutomationPage user={user} onNavigate={navigateTo} />}
-        {section === "Leaves" && <AdminLeavesPage user={user} onNavigate={navigateTo} />}
+        {section === "Attendance" && <AdminAttendanceAutomationPage onNavigate={navigateTo} />}
+        {section === "Leaves" && <AdminLeavesPage />}
         {section === "Reports" && <AdminReportsPage />}
         {section === "Account settings" && <AccountSettings user={user} updateUser={updateUser} onSignOut={signOut} />}
       </>}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BadgeCheck,
   BellRing,
@@ -16,16 +16,26 @@ import {
   LockKeyhole,
   LogOut,
   Mail,
+  Plus,
   Save,
+  Upload,
   UserRound,
 } from "lucide-react";
 import dayjs from "dayjs";
-import { changeMyPassword, updateMyProfile } from "../api/auth.api";
+import {
+  changeMyPassword,
+  updateMyProfile,
+  updateMyNotificationPreferences,
+  uploadMyProfileImage,
+} from "../api/auth.api";
 import useToastMessage from "../hooks/useToastMessage";
+import {
+  profileImageAccept,
+  validateProfileImage,
+} from "../utils/profileImage";
 
 const cardClass =
   "rounded-lg border border-[#E9E5F7] bg-white shadow-[0_8px_24px_rgba(106,13,173,0.06)]";
-const preferenceKey = "crew-hrcore-notification-preferences";
 const defaultPreferences = {
   leaveUpdates: true,
   attendanceReminders: true,
@@ -108,42 +118,45 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
     confirmPassword: "",
   });
   const [visiblePasswords, setVisiblePasswords] = useState({});
-  const [initialPreferences] = useState(() => {
-    try {
-      const saved = window.localStorage.getItem(preferenceKey);
-      if (!saved) return { preferences: defaultPreferences, error: "" };
-      const parsed = JSON.parse(saved);
-      return {
-        preferences: {
-          leaveUpdates: parsed.leaveUpdates !== false,
-          attendanceReminders: parsed.attendanceReminders !== false,
-          weeklySummary: parsed.weeklySummary === true,
-        },
-        error: "",
-      };
-    } catch {
-      return {
-        preferences: defaultPreferences,
-        error: "Could not load notification preferences from this browser.",
-      };
-    }
-  });
-  const [preferences, setPreferences] = useState(initialPreferences.preferences);
+  const [preferences, setPreferences] = useState(() => ({
+    ...defaultPreferences,
+    ...user?.notificationPreferences,
+  }));
+  const [savingPreferences, setSavingPreferences] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
-  const [error, setError] = useState(initialPreferences.error);
+  const [profileImage, setProfileImage] = useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState("");
+  const profileImagePreviewUrl = useRef("");
+  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [failedAvatarUrl, setFailedAvatarUrl] = useState("");
   useToastMessage(error, "error");
   useToastMessage(notice, "success");
 
+  useEffect(() => () => {
+    if (profileImagePreviewUrl.current) {
+      URL.revokeObjectURL(profileImagePreviewUrl.current);
+    }
+  }, []);
+
+  const updateSelectedProfileImage = (file) => {
+    if (profileImagePreviewUrl.current) {
+      URL.revokeObjectURL(profileImagePreviewUrl.current);
+    }
+    profileImagePreviewUrl.current = file ? URL.createObjectURL(file) : "";
+    setProfileImage(file);
+    setProfileImagePreview(profileImagePreviewUrl.current);
+  };
+
   const strength = useMemo(
     () => getPasswordStrength(passwordForm.newPassword),
     [passwordForm.newPassword],
   );
-  const isProfileDirty =
-    profileForm.name !== (user?.name || "") ||
-    profileForm.profilePic !== (user?.profilePic || "");
+  const isProfileDirty = profileForm.name !== (user?.name || "");
+  const avatarUrl = profileImagePreview || profileForm.profilePic;
+  const hasProfileImage = Boolean(avatarUrl && avatarUrl !== failedAvatarUrl);
   const joinedDate = user?.joiningDate
     ? dayjs(user.joiningDate).format("DD MMM YYYY")
     : "Not provided";
@@ -166,28 +179,14 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
     setError("");
     setNotice("");
     const name = profileForm.name.trim();
-    const profilePic = profileForm.profilePic.trim();
     if (name.length < 2) {
       setError("Your name must contain at least 2 characters.");
       return;
     }
-    if (profilePic) {
-      try {
-        const photoUrl = new URL(profilePic);
-        if (!["http:", "https:"].includes(photoUrl.protocol)) {
-          throw new Error("Unsupported photo URL protocol");
-        }
-      } catch {
-        setError("Enter a valid HTTPS or HTTP image URL.");
-        return;
-      }
-    }
 
     setSavingProfile(true);
     try {
-      const profile = { name };
-      if (profilePic) profile.profilePic = profilePic;
-      const result = await updateMyProfile(profile);
+      const result = await updateMyProfile({ name });
       updateUser(result.user);
       setProfileForm({
         name: result.user.name || "",
@@ -201,6 +200,33 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
       );
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const uploadProfilePhoto = async (image) => {
+    if (!image) return;
+    setError("");
+    setNotice("");
+    setSavingProfile(true);
+    setUploadingProfileImage(true);
+    try {
+      const result = await uploadMyProfileImage(image);
+      updateUser(result.user);
+      setProfileForm((current) => ({
+        ...current,
+        profilePic: result.user.profilePic || "",
+      }));
+      updateSelectedProfileImage(null);
+      setFailedAvatarUrl("");
+      setNotice(result.message || "Profile photo updated.");
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.message ||
+          "Unable to upload your profile photo. Please try again.",
+      );
+    } finally {
+      setSavingProfile(false);
+      setUploadingProfileImage(false);
     }
   };
 
@@ -238,14 +264,28 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
     }
   };
 
-  const togglePreference = (key) => {
+  const togglePreference = async (key) => {
+    if (savingPreferences) return;
+    const previous = preferences;
     const next = { ...preferences, [key]: !preferences[key] };
+    setPreferences(next);
+    setError("");
+    setNotice("");
+    setSavingPreferences(true);
     try {
-      window.localStorage.setItem(preferenceKey, JSON.stringify(next));
-      setPreferences(next);
-      setError("");
-    } catch {
-      setError("Could not save preferences in this browser.");
+      const result = await updateMyNotificationPreferences(next);
+      const savedPreferences = result.user?.notificationPreferences || next;
+      setPreferences({ ...defaultPreferences, ...savedPreferences });
+      if (result.user) updateUser(result.user);
+      setNotice(result.message || "Email notification preferences saved.");
+    } catch (requestError) {
+      setPreferences(previous);
+      setError(
+        requestError.response?.data?.message ||
+          "Could not save your email preferences. Please try again.",
+      );
+    } finally {
+      setSavingPreferences(false);
     }
   };
 
@@ -256,17 +296,17 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
     {
       key: "leaveUpdates",
       title: "Leave updates",
-      description: "When a request is approved or rejected.",
+      description: "Email when a leave request is approved or rejected.",
     },
     {
       key: "attendanceReminders",
       title: "Attendance reminders",
-      description: "Check-in and check-out reminders.",
+      description: "On workdays, after shift grace period and at shift end.",
     },
     {
       key: "weeklySummary",
       title: "Weekly summary",
-      description: "A digest of your activity each week.",
+      description: "Activity digest every Monday at 9:00 AM.",
     },
   ];
 
@@ -302,22 +342,64 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
           <aside className="grid min-w-0 grid-cols-1 gap-5">
             <section className={`${cardClass} overflow-hidden`}>
               <div className="bg-gradient-to-b from-violet-100 via-purple-50 to-white px-5 pb-5 pt-6 text-center">
-                <div className="relative mx-auto grid h-[88px] w-[88px] place-items-center rounded-full bg-gradient-to-br from-[#6A0DAD] to-[#7C3AED] font-['Poppins',sans-serif] text-[26px] font-semibold text-white shadow-[0_8px_20px_rgba(106,13,173,0.22)] ring-4 ring-white">
-                  {profileForm.profilePic &&
-                  profileForm.profilePic !== failedAvatarUrl ? (
-                    <img
-                      alt={`${profileForm.name || "User"} profile`}
-                      className="h-full w-full rounded-full object-cover"
-                      onError={() => setFailedAvatarUrl(profileForm.profilePic)}
-                      src={profileForm.profilePic}
-                    />
-                  ) : (
-                    initials(profileForm.name)
-                  )}
-                  <span className="absolute -bottom-0.5 -right-0.5 grid h-8 w-8 place-items-center rounded-full border-[3px] border-white bg-white text-violet-700 shadow-sm">
-                    <UserRound size={16} />
+                <label
+                  aria-label="Choose or change profile photo"
+                  className="group relative mx-auto grid h-[88px] w-[88px] cursor-pointer place-items-center rounded-full font-['Poppins',sans-serif] text-[26px] font-semibold text-white shadow-[0_8px_20px_rgba(106,13,173,0.22)] ring-4 ring-white focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-violet-600"
+                >
+                  <span className="absolute inset-0 overflow-hidden rounded-full bg-gradient-to-br from-[#6A0DAD] to-[#7C3AED]">
+                    {hasProfileImage ? (
+                      <img
+                        alt={`${profileForm.name || "User"} profile`}
+                        className="h-full w-full object-cover"
+                        onError={() => setFailedAvatarUrl(avatarUrl)}
+                        src={avatarUrl}
+                      />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center">
+                        {initials(profileForm.name)}
+                      </span>
+                    )}
                   </span>
-                </div>
+                  <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center gap-1 rounded-full bg-slate-950/60 text-[11px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                    {uploadingProfileImage ? (
+                      <LoaderCircle className="animate-spin" size={14} />
+                    ) : (
+                      <Upload size={13} />
+                    )}
+                    {uploadingProfileImage ? "Uploading..." : hasProfileImage ? "Change" : "Add photo"}
+                  </span>
+                  {!hasProfileImage && (
+                    <span className="absolute -right-1 -top-1 z-20 grid h-7 w-7 place-items-center rounded-full border-[3px] border-white bg-gradient-to-br from-violet-600 to-purple-800 text-white shadow-md">
+                      {uploadingProfileImage ? (
+                        <LoaderCircle className="animate-spin" size={13} />
+                      ) : (
+                        <Plus size={15} />
+                      )}
+                    </span>
+                  )}
+                  <input
+                    accept={profileImageAccept}
+                    aria-label="Select a profile photo"
+                    className="sr-only"
+                    disabled={savingProfile}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      const validationMessage = validateProfileImage(file);
+                      if (validationMessage) {
+                        setError(validationMessage);
+                        event.target.value = "";
+                        return;
+                      }
+                      setError("");
+                      setFailedAvatarUrl("");
+                      updateSelectedProfileImage(file);
+                      event.target.value = "";
+                      void uploadProfilePhoto(file);
+                    }}
+                    type="file"
+                  />
+                </label>
                 <h2 className="mt-4 truncate font-['Poppins',sans-serif] text-[18px] font-semibold text-slate-900">
                   {user?.name || "Your profile"}
                 </h2>
@@ -336,8 +418,7 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
               </div>
               <div className="border-t border-[#E9E5F7] px-5 py-4">
                 <p className="text-[12px] leading-5 text-slate-600">
-                  Update your photo by entering an image URL in Personal
-                  information.
+                  Upload a JPEG, PNG, or WebP photo up to 5 MB.
                 </p>
               </div>
             </section>
@@ -432,37 +513,18 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
                       />
                     </span>
                   </label>
-                  <label className="block min-w-0 text-[13px] font-semibold text-slate-700 sm:col-span-2">
-                    Profile photo URL
-                    <span className="mt-1.5 flex h-12 min-w-0 items-center gap-2.5 rounded-lg border border-[#E9E5F7] bg-[#FBFAFF] px-3 text-violet-700 transition focus-within:border-violet-600 focus-within:bg-white focus-within:ring-4 focus-within:ring-violet-500/15">
-                      <UserRound className="shrink-0" size={16} />
-                      <input
-                        autoComplete="url"
-                        className="h-full w-full min-w-0 bg-transparent text-[16px] font-normal text-slate-800 outline-none placeholder:text-slate-400"
-                        maxLength={2048}
-                        onChange={(event) =>
-                          setProfileForm({
-                            ...profileForm,
-                            profilePic: event.target.value,
-                          })
-                        }
-                        placeholder="https://example.com/photo.jpg"
-                        type="url"
-                        value={profileForm.profilePic}
-                      />
-                    </span>
-                  </label>
                 </div>
                 <div className="mt-5 flex flex-wrap justify-end gap-2">
                   <button
                     className="inline-flex h-11 items-center gap-2 rounded-lg border border-[#E9E5F7] px-4 text-[13px] font-semibold text-slate-700 transition hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!isProfileDirty || savingProfile}
-                    onClick={() =>
+                    disabled={(!isProfileDirty && !profileImage) || savingProfile}
+                    onClick={() => {
                       setProfileForm({
                         name: user?.name || "",
                         profilePic: user?.profilePic || "",
-                      })
-                    }
+                      });
+                      updateSelectedProfileImage(null);
+                    }}
                     type="button"
                   >
                     Reset
@@ -609,7 +671,7 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
                       Notification preferences
                     </h2>
                     <p className="mt-0.5 text-[13px] text-slate-600">
-                      Choose what you want to see in this browser.
+                      Choose which email notifications you receive.
                     </p>
                   </div>
                 </div>
@@ -617,7 +679,9 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
               <div className="grid min-w-0 gap-2 @min-[560px]/account:grid-cols-2 @min-[1000px]/account:grid-cols-3">
                 {preferenceItems.map((item) => (
                   <label
-                    className="flex min-h-[88px] min-w-0 cursor-pointer items-start justify-between gap-3 rounded-lg border border-[#E9E5F7] p-4 transition hover:border-violet-300 hover:bg-violet-50/40"
+                    className={`flex min-h-[88px] min-w-0 items-start justify-between gap-3 rounded-lg border border-[#E9E5F7] p-4 transition hover:border-violet-300 hover:bg-violet-50/40 ${
+                      savingPreferences ? "cursor-wait opacity-70" : "cursor-pointer"
+                    }`}
                     key={item.key}
                   >
                     <span className="min-w-0">
@@ -632,6 +696,7 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
                       aria-label={item.title}
                       checked={preferences[item.key]}
                       className="peer sr-only"
+                      disabled={savingPreferences}
                       onChange={() => togglePreference(item.key)}
                       type="checkbox"
                     />
@@ -650,10 +715,7 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
                   </label>
                 ))}
               </div>
-              <p className="mt-4 text-[12px] leading-5 text-slate-600">
-                Preferences are stored on this device. Email notification
-                delivery is not controlled by these settings.
-              </p>
+              
             </section>
           </div>
         </div>

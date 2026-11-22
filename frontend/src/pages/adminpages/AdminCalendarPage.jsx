@@ -24,7 +24,6 @@ import {
   listHolidays,
   updateHoliday,
 } from "../../api/auth.api";
-import { useAuth } from "../../context/AuthContext";
 import useToastMessage from "../../hooks/useToastMessage";
 
 dayjs.extend(utc);
@@ -55,7 +54,6 @@ const countHolidayDaysInMonth = (holidays, month) => {
 };
 
 export default function AdminCalendarPage() {
-  const { user } = useAuth();
   const initialDate = dayjs().tz(timeZone);
   const [month, setMonth] = useState(initialDate.startOf("month"));
   const [selectedDate, setSelectedDate] = useState(todayKey());
@@ -294,10 +292,6 @@ export default function AdminCalendarPage() {
         <CalendarDays size={17} />
         {upcomingHolidays.length > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-red-700" />}
         </span>
-        <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3">
-          <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(user?.name)}</span>
-          <span className="max-w-24 truncate text-[13px] font-medium text-slate-700">{user?.name?.split(" ")[0] || "Admin"}</span>
-        </div>
       </div>
     </header>
 
@@ -478,8 +472,4 @@ function HolidayDialog({ form, editing, saving, onChange, onClose, onSubmit }) {
 function formatWeekends(days) {
   const ordered = [...days].sort((first, second) => (first + 6) % 7 - (second + 6) % 7);
   return ordered.length ? ordered.map((day) => weekdayNames[day]).join(", ") : "None";
-}
-
-function initials(name = "") {
-  return name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || "AD";
 }

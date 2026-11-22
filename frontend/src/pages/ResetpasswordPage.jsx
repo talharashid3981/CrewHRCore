@@ -17,7 +17,8 @@ const controlClass =
 const focusRing =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600";
 
-export default function ResetpasswordPage() {
+export default function ResetpasswordPage({ purpose = "reset" }) {
+  const isSetup = purpose === "setup";
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
   const [password, setPassword] = useState("");
@@ -42,12 +43,18 @@ export default function ResetpasswordPage() {
     setSubmitting(true);
     try {
       const data = await resetPassword({ token, password });
-      setMessage(data.message);
+      setMessage(
+        isSetup
+          ? "Password set successfully. Sign in to complete your account setup."
+          : data.message,
+      );
       setTimeout(() => navigate("/login", { replace: true }), 1800);
     } catch (requestError) {
       setError(
         requestError.response?.data?.message ||
-          "Unable to reset your password.",
+          (isSetup
+            ? "Unable to set up your password."
+            : "Unable to reset your password."),
       );
     } finally {
       setSubmitting(false);
@@ -98,8 +105,12 @@ export default function ResetpasswordPage() {
     <AuthLayout
       variant="login"
       icon={<LockKeyhole size={40} strokeWidth={1.8} aria-hidden="true" />}
-      title="Set a new password"
-      description="Choose a strong password to secure your Crew HRCore account."
+      title={isSetup ? "Set up your password" : "Set a new password"}
+      description={
+        isSetup
+          ? "Create a password for your Crew HRCore account, then sign in to complete your employee profile."
+          : "Choose a strong password to secure your Crew HRCore account."
+      }
       footer={
         <Link
           className={`inline-flex items-center gap-2 font-medium text-violet-800 transition hover:text-violet-950 focus-visible:rounded-lg ${focusRing}`}
@@ -134,7 +145,13 @@ export default function ResetpasswordPage() {
           disabled={submitting || !token}
           aria-busy={submitting}
         >
-          {submitting ? "Saving password..." : "Reset password"}
+          {submitting
+            ? isSetup
+              ? "Setting up password..."
+              : "Saving password..."
+            : isSetup
+              ? "Set up password"
+              : "Reset password"}
           <ArrowRight size={18} />
         </button>
       </form>

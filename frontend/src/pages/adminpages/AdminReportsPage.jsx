@@ -19,7 +19,6 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { exportMonthlyReport, getEmployeeMonthlyReport, getMonthlyReport } from "../../api/auth.api";
-import { useAuth } from "../../context/AuthContext";
 import useToastMessage from "../../hooks/useToastMessage";
 
 dayjs.extend(utc);
@@ -140,7 +139,6 @@ function MetricCard({ label, value, icon: Icon, trend, tone = "violet" }) {
 }
 
 export default function AdminReportsPage() {
-  const { user } = useAuth();
   const [month, setMonth] = useState(currentMonth);
   const [reports, setReports] = useState([]);
   const [previousReports, setPreviousReports] = useState([]);
@@ -308,8 +306,6 @@ export default function AdminReportsPage() {
       ? `${formatDate(chartDays[0].date, "D")}–${formatDate(chartDays[chartDays.length - 1].date, "D MMM")}`
       : `${formatDate(chartDays[0].date)}–${formatDate(chartDays[chartDays.length - 1].date)}`
     : "No completed working days";
-  const avatarName = user?.name || "Administrator";
-
   return (
     <main className="w-full min-w-0 font-['Inter',sans-serif] text-slate-800">
       <header className="mb-5 flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
@@ -330,10 +326,6 @@ export default function AdminReportsPage() {
             {exporting ? <LoaderCircle className="animate-spin" size={16} /> : <Download size={16} />}
             {exporting ? "Exporting..." : "Export report"}
           </button>
-          <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
-            <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(avatarName)}</span>
-            <span className="max-w-16 truncate text-[13px] font-medium text-slate-700 sm:max-w-24">{avatarName.split(" ")[0]}</span>
-          </div>
         </div>
       </header>
 

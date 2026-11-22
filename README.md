@@ -28,6 +28,7 @@ Some real-world actions require user-controlled external services and should be 
 
 - Browser location permission and physical geofence validation for check-in/check-out
 - Email delivery through the configured Brevo account
+- Email notification preferences are stored per account; shift reminders and weekly summaries run on Asia/Karachi time
 - WhatsApp Web/mobile app opening and manual group selection before sending
 - MongoDB Atlas connectivity and allowed network access
 
@@ -36,6 +37,7 @@ Some real-world actions require user-controlled external services and should be 
 ### Employee Features
 
 - Secure registration, login, logout, password reset, and profile/password management
+- Account-level email preferences for leave updates, shift-based attendance reminders, and weekly summaries
 - Guided onboarding with administrator-configured departments and shift selection
 - Attendance check-in and check-out with office geofence, GPS accuracy checks, shift rules, lateness calculation, and attendance history
 - WhatsApp attendance sharing after successful check-in or check-out
@@ -107,6 +109,9 @@ JWT_EXPIRES_IN=7d
 BREVO_API_KEY=your_brevo_key
 BREVO_SENDER_EMAIL=your_sender_email
 BREVO_SENDER_NAME=Crew HRCore
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
 Run:
@@ -150,6 +155,9 @@ JWT_EXPIRES_IN=7d
 BREVO_API_KEY=your_brevo_key
 BREVO_SENDER_EMAIL=your_sender_email
 BREVO_SENDER_NAME=Crew HRCore
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 CRON_SECRET=use_a_separate_long_random_secret
 ```
 

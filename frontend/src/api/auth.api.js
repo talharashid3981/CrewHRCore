@@ -26,6 +26,14 @@ export const getOnboardingShiftTimes = () =>
 export const updateMyProfile = (data) =>
   api.patch("/users/me", data).then((res) => res.data);
 
+export const updateMyNotificationPreferences = (preferences) =>
+  api.patch("/users/me/notification-preferences", preferences).then((res) => res.data);
+
+export const uploadMyProfileImage = (image) =>
+  api.put("/users/me/profile-image", image, {
+    headers: { "Content-Type": image.type },
+  }).then((res) => res.data);
+
 export const changeMyPassword = (data) =>
   api.patch("/users/me/password", data).then((res) => res.data);
 
@@ -55,6 +63,9 @@ export const setEmployeeStatus = (id, isActive) =>
 
 export const updateEmployee = (id, data) =>
   api.patch(`/users/${id}`, data).then((res) => res.data);
+
+export const repairEmployeeOnboardingStatus = (id) =>
+  api.post(`/users/${id}/repair-status`).then((res) => res.data);
 
 export const getOfficeSettings = () =>
   api.get("/settings/office").then((res) => res.data);

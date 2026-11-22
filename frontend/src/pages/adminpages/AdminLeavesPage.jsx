@@ -64,7 +64,7 @@ const formatTime = (value) => value
 const initials = (value = "") =>
   value.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "EM";
 
-export default function AdminLeavesPage({ user }) {
+export default function AdminLeavesPage() {
   const [tab, setTab] = useState("requests");
   const [status, setStatus] = useState("pending");
   const [search, setSearch] = useState("");
@@ -333,10 +333,6 @@ export default function AdminLeavesPage({ user }) {
             {exporting ? <LoaderCircle className="animate-spin" size={15} /> : <Download size={15} />}
             Export
           </button>
-          <div className="flex h-10 items-center gap-2 rounded-full border border-slate-300 bg-white py-1 pl-1 pr-3 shadow-sm">
-            <span className="grid size-8 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(user?.name)}</span>
-            <span className="max-w-24 truncate text-[13px] font-medium text-slate-700">{user?.name?.split(" ")[0] || "Admin"}</span>
-          </div>
         </div>
       </header>
 

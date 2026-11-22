@@ -15,6 +15,10 @@ import reportRoutes from "./routes/reportRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import cron from "node-cron";
 import { csrfProtection } from "./middleware/security.js";
+import {
+  runAttendanceReminderEmails,
+  runWeeklySummaryEmails,
+} from "./services/emailNotificationService.js";
 
 
 const app = express();
@@ -89,6 +93,10 @@ connectDB().then(async () => {
   } catch (error) {
     console.error("Automation startup catch-up failed:", error);
   }
+  cron.schedule("* * * * *", () => runAttendanceReminderEmails()
+    .catch((error) => console.error("Attendance reminder job failed:", error)), { timezone: "Asia/Karachi" });
+  cron.schedule("* * * * *", () => runWeeklySummaryEmails()
+    .catch((error) => console.error("Weekly summary job failed:", error)), { timezone: "Asia/Karachi" });
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });

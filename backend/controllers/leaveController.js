@@ -380,7 +380,9 @@ export const cancelLeave = async (req, res) => {
 export const approveLeave = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) return idError(res);
-    const request = await leaveRequestModel.findById(req.params.id).populate("employee", "name email isActive").populate("leaveType", "name yearlyQuota isActive");
+    const request = await leaveRequestModel.findById(req.params.id)
+      .populate("employee", "name email isActive notificationPreferences")
+      .populate("leaveType", "name yearlyQuota isActive");
     if (!request || !request.employee?.isActive) return res.status(404).json({ success: false, message: "Leave request not found" });
     if (request.status !== "pending") return res.status(409).json({ success: false, message: "Only pending requests can be approved" });
     const working = await getWorkingDays(request.from, request.to);
@@ -397,7 +399,10 @@ export const approveLeave = async (req, res) => {
       { new: true },
     ).populate("employee", "name email").populate("leaveType", "name");
     if (!updated) return res.status(409).json({ success: false, message: "Request already processed" });
-    void sendLeaveApprovedEmail(updated.employee, updated).catch((error) => console.error("Leave approval email failed:", error.message));
+    if (updated.employee && updated.employee.notificationPreferences?.leaveUpdates !== false) {
+      void sendLeaveApprovedEmail(updated.employee, updated)
+        .catch((error) => console.error("Leave approval email failed:", error.message));
+    }
     return res.json({ success: true, message: "Leave approved", leave: publicRequest(updated) });
   } catch (error) {
     console.error("Approve leave failed:", error);
@@ -414,9 +419,12 @@ export const rejectLeave = async (req, res) => {
       { _id: req.params.id, status: "pending" },
       { $set: { status: "rejected", reviewNote: parsed.data.note, reviewedBy: req.user._id, reviewedAt: new Date() } },
       { new: true },
-    ).populate("employee", "name email").populate("leaveType", "name");
+    ).populate("employee", "name email notificationPreferences").populate("leaveType", "name");
     if (!request) return res.status(409).json({ success: false, message: "Pending leave request not found or already processed" });
-    void sendLeaveRejectedEmail(request.employee, request, parsed.data.note).catch((error) => console.error("Leave rejection email failed:", error.message));
+    if (request.employee && request.employee.notificationPreferences?.leaveUpdates !== false) {
+      void sendLeaveRejectedEmail(request.employee, request, parsed.data.note)
+        .catch((error) => console.error("Leave rejection email failed:", error.message));
+    }
     return res.json({ success: true, message: "Leave rejected", leave: publicRequest(request) });
   } catch (error) {
     console.error("Reject leave failed:", error);

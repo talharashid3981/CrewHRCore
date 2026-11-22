@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ChevronRight,
@@ -7,11 +7,18 @@ import {
   LockKeyhole,
   Mail,
   Plus,
+  Upload,
   UserRound,
   UsersRound,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useToastMessage from "../hooks/useToastMessage";
+import { toast } from "react-toastify";
+import { uploadMyProfileImage } from "../api/auth.api";
+import {
+  profileImageAccept,
+  validateProfileImage,
+} from "../utils/profileImage";
 
 const steps = [
   {
@@ -120,11 +127,29 @@ export default function Signuppage() {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState("");
+  const profileImagePreviewUrl = useRef("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   useToastMessage(error, "error");
-  const { register } = useAuth();
+  const { register, updateUser } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => () => {
+    if (profileImagePreviewUrl.current) {
+      URL.revokeObjectURL(profileImagePreviewUrl.current);
+    }
+  }, []);
+
+  const updateSelectedProfileImage = (file) => {
+    if (profileImagePreviewUrl.current) {
+      URL.revokeObjectURL(profileImagePreviewUrl.current);
+    }
+    profileImagePreviewUrl.current = file ? URL.createObjectURL(file) : "";
+    setProfileImage(file);
+    setProfileImagePreview(profileImagePreviewUrl.current);
+  };
 
   const update = (event) => {
     const { name, value } = event.target;
@@ -142,6 +167,17 @@ export default function Signuppage() {
         email: formData.email,
         password: formData.password,
       });
+      if (profileImage) {
+        try {
+          const result = await uploadMyProfileImage(profileImage);
+          updateUser(result.user);
+        } catch (uploadError) {
+          console.error("Signup profile image upload failed:", uploadError);
+          toast.warning(
+            "Your account was created, but the photo could not be uploaded. You can try again in Account settings.",
+          );
+        }
+      }
       navigate("/dashboard", { replace: true });
     } catch (requestError) {
       setError(
@@ -161,22 +197,62 @@ export default function Signuppage() {
         <div className="relative z-10 -mt-5 flex min-w-0 items-center justify-center rounded-t-lg bg-white px-5 pb-8 pt-0 sm:px-10 sm:pb-10 lg:mt-0 lg:rounded-none lg:px-10 lg:py-10 xl:px-14">
           <div className="w-full min-w-0 max-w-[400px]">
             <header className="mb-5 text-center lg:mb-6">
-              <div
-                className="relative mx-auto -mt-[42px] mb-4 flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-100 to-violet-200 text-violet-800 shadow-[0_8px_24px_rgba(106,13,173,0.12)] lg:mt-0 lg:mb-3 lg:h-[72px] lg:w-[72px] lg:shadow-none"
+              <label
+                aria-label="Choose or change profile photo"
+                className="group relative mx-auto -mt-[42px] mb-4 flex h-[84px] w-[84px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-violet-100 to-violet-200 text-violet-800 shadow-[0_8px_24px_rgba(106,13,173,0.12)] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-violet-600 lg:mt-0 lg:mb-3 lg:h-[72px] lg:w-[72px] lg:shadow-none"
               >
-                <UserRound
-                  size={40}
-                  strokeWidth={1.8}
-                  className="lg:h-9 lg:w-9"
-                />
-
-                <span
-                  className="absolute -right-1 top-0 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-white bg-gradient-to-br from-violet-600 to-purple-800 text-white shadow-md"
-                  aria-hidden="true"
-                >
-                  <Plus size={15} strokeWidth={2.5} />
+                <span className="absolute inset-0 overflow-hidden rounded-full">
+                  {profileImagePreview ? (
+                    <img
+                      alt=""
+                      className="h-full w-full object-cover"
+                      onError={() => {
+                        setError("This image could not be previewed. Please choose another image.");
+                        updateSelectedProfileImage(null);
+                      }}
+                      src={profileImagePreview}
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center">
+                      <UserRound
+                        size={40}
+                        strokeWidth={1.8}
+                        className="lg:h-9 lg:w-9"
+                      />
+                    </span>
+                  )}
                 </span>
-              </div>
+                {profileImagePreview && (
+                  <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center gap-1 rounded-full bg-slate-950/60 text-[11px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                    <Upload size={13} />
+                    Change
+                  </span>
+                )}
+                {!profileImagePreview && (
+                  <span className="absolute -right-1 top-0 z-20 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-white bg-gradient-to-br from-violet-600 to-purple-800 text-white shadow-md" aria-hidden="true">
+                    <Plus size={15} strokeWidth={2.5} />
+                  </span>
+                )}
+                <input
+                  accept={profileImageAccept}
+                  aria-label="Select a profile photo"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    const validationMessage = validateProfileImage(file);
+                    if (validationMessage) {
+                      setError(validationMessage);
+                      event.target.value = "";
+                      return;
+                    }
+                    setError("");
+                    updateSelectedProfileImage(file);
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
 
               <h1 className="mt-0 font-['Poppins',sans-serif] text-[30px] font-semibold leading-tight tracking-[-0.6px] text-slate-900 lg:mt-2 lg:text-[28px] xl:text-[30px]">
                 Create your account

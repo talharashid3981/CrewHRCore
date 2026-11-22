@@ -58,12 +58,6 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-2 lg:hidden">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-purple-800 font-['Poppins',sans-serif] text-[12px] font-semibold text-white sm:hidden">
-              {initials(user?.name)}
-            </span>
-            <span className="hidden max-w-36 truncate text-[12px] font-semibold text-slate-700 sm:inline">
-              {user?.name?.split(" ")[0] || "Employee"}
-            </span>
             <button
               aria-controls="dashboard-navigation"
               aria-expanded={menuOpen}
@@ -177,7 +171,7 @@ export default function DashboardPage() {
       <section className="min-w-0 flex-1 p-4 sm:p-6 lg:ml-[212px] lg:px-[27px] lg:py-6">
         {activeTab === "dashboard" && (
           <>
-            <DashboardHeader user={user} />
+            <DashboardHeader />
             <EmployeeOverview
               onNavigate={(tab) => setActiveTab(tab)}
             />
@@ -186,7 +180,6 @@ export default function DashboardPage() {
         {activeTab === "attendance" && (
           <>
             <DashboardHeader
-              user={user}
               title="My attendance"
               subtitle="Check in, check out and review your attendance history."
             />
@@ -201,7 +194,6 @@ export default function DashboardPage() {
         {activeTab === "leave" && (
           <>
             <DashboardHeader
-              user={user}
               title="My leave"
               subtitle="Check balances, request time off and track your requests."
             />
@@ -219,11 +211,7 @@ export default function DashboardPage() {
     </main>
   );
 }
-function DashboardHeader({
-  user,
-  title = "Dashboard",
-  subtitle,
-}) {
+function DashboardHeader({ title = "Dashboard", subtitle }) {
   const todayLabel = new Intl.DateTimeFormat("en-GB", {
     weekday: "long",
     day: "numeric",
@@ -241,16 +229,6 @@ function DashboardHeader({
         <p className="mt-1 text-[14px] leading-[1.5] text-slate-600 sm:text-[15px]">
           {subtitle || `${todayLabel} · Asia/Karachi`}
         </p>
-      </div>
-      <div className="flex items-center gap-3 self-start sm:self-auto">
-        <div className="flex items-center gap-2 rounded-full border border-[#E9E5F7] bg-white py-1 pl-1 pr-3 shadow-sm">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-purple-800 font-['Poppins',sans-serif] text-[12px] font-semibold text-white">
-            {initials(user?.name)}
-          </span>
-          <span className="max-w-28 truncate text-[13px] font-semibold text-slate-700">
-            {user?.name?.split(" ")[0] || "Employee"}
-          </span>
-        </div>
       </div>
     </header>
   );
