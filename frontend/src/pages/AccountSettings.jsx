@@ -24,6 +24,7 @@ import {
 import dayjs from "dayjs";
 import {
   changeMyPassword,
+  getMe,
   updateMyProfile,
   updateMyNotificationPreferences,
   uploadMyProfileImage,
@@ -202,16 +203,26 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
     setUploadingProfileImage(true);
     try {
       const result = await uploadMyProfileImage(image);
-      updateUser(result.user);
+      let updatedUser = result.user;
+      if (!updatedUser?.profilePic) {
+        updatedUser = (await getMe()).user;
+      }
+      if (!updatedUser?.profilePic) {
+        throw new Error(
+          "The upload succeeded, but the server did not return a profile photo URL. Check that the latest backend is deployed.",
+        );
+      }
+      updateUser(updatedUser);
       setProfileForm((current) => ({
         ...current,
-        profilePic: result.user.profilePic || "",
+        profilePic: updatedUser.profilePic,
       }));
       updateSelectedProfileImage(null);
       setNotice(result.message || "Profile photo updated.");
     } catch (requestError) {
       setError(
         requestError.response?.data?.message ||
+          requestError.message ||
           "Unable to upload your profile photo. Please try again.",
       );
     } finally {
