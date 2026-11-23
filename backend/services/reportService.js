@@ -46,6 +46,6 @@ export const buildMonthlyReport = async (employees, range) => {
   const resolved = await resolveRangeBulk(employees, range.from, range.to);
   return employees.map((employee) => {
     const daily = resolved.get(String(employee._id)) || [];
-    return { employee: { id: employee._id, name: employee.name, email: employee.email, department: employee.department, designation: employee.designation }, summary: summarizeResolved(daily), daily };
+    return { employee: { id: employee._id, name: employee.name, email: employee.email, profilePic: employee.profilePic, department: employee.department, designation: employee.designation }, summary: summarizeResolved(daily), daily };
   });
 };

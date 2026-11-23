@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import BrandLogo from "../components/BrandLogo";
+import ProfileAvatar from "../components/ProfileAvatar";
 import AttendancePage from "./AttendancePage";
 import HolidayCalendarPage from "./HolidayCalendarPage";
 import LeavePage from "./LeavePage";
@@ -27,14 +28,6 @@ const tabs = [
   { id: "settings", label: "Account settings", icon: SlidersHorizontal },
 ];
 const tabIds = new Set(tabs.map(({ id }) => id));
-
-const initials = (name = "") =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join("") || "U";
 
 export default function DashboardPage() {
   const { user, logout, updateUser } = useAuth();
@@ -127,9 +120,11 @@ export default function DashboardPage() {
             </>
           )}
           <div className="mt-2 flex items-center gap-3 border-t border-slate-100 px-2 pt-3 lg:hidden">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-purple-100 font-['Poppins',sans-serif] text-[12px] font-semibold text-violet-700">
-              {initials(user?.name)}
-            </span>
+            <ProfileAvatar
+              className="h-9 w-9 bg-purple-100 font-['Poppins',sans-serif] text-[12px] font-semibold text-violet-700"
+              name={user?.name}
+              src={user?.profilePic}
+            />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[12px] font-semibold text-slate-900">
                 {user?.name || "Employee"}
@@ -151,9 +146,11 @@ export default function DashboardPage() {
         </nav>
 
         <div className="mt-auto hidden items-center gap-3 rounded-lg bg-[#F3E8FF] p-3 lg:flex">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-purple-800 font-['Poppins',sans-serif] text-[12px] font-semibold text-white">
-            {initials(user?.name)}
-          </span>
+          <ProfileAvatar
+            className="h-9 w-9 bg-gradient-to-br from-violet-600 to-purple-800 font-['Poppins',sans-serif] text-[12px] font-semibold text-white"
+            name={user?.name}
+            src={user?.profilePic}
+          />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[12px] font-semibold text-slate-900">
               {user?.name || "Employee"}

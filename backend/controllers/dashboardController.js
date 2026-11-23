@@ -24,7 +24,7 @@ export const dashboardAdmin = async (req, res) => {
       userModel.find({
         ...activeEmployeeFilter,
         onboardingStatus: "approved",
-      }).select("_id name department joiningDate approvedAt shiftStart shiftEnd").lean(),
+      }).select("_id name profilePic department joiningDate approvedAt shiftStart shiftEnd").lean(),
       userModel.find(activeEmployeeFilter).distinct("_id"),
     ]);
 
@@ -65,7 +65,7 @@ export const dashboardAdmin = async (req, res) => {
       attendanceModel.find({
         date: { $gte: attendanceFrom, $lte: date },
         missingCheckOut: true,
-      }).populate("employee", "name").select("date employee").sort({ date: 1 }).limit(20).lean(),
+      }).populate("employee", "name profilePic").select("date employee").sort({ date: 1 }).limit(20).lean(),
       resolveRangeBulk(activeEmployees, date, date),
       automationStateModel.findOne({ key: "dailyClose" }).select("updatedAt lastProcessedDate").lean(),
       userModel.aggregate([
@@ -88,19 +88,19 @@ export const dashboardAdmin = async (req, res) => {
           { approvedAt: { $gte: activityStart } },
           { onboardingStatus: "rejected", updatedAt: { $gte: activityStart } },
         ],
-      }).select("name onboardingStatus onboardingSubmittedAt approvedAt rejectionNote updatedAt").sort({ updatedAt: -1 }).limit(8).lean(),
+      }).select("name profilePic onboardingStatus onboardingSubmittedAt approvedAt rejectionNote updatedAt").sort({ updatedAt: -1 }).limit(8).lean(),
       leaveRequestModel.find({
         employee: { $in: activeEmployeeIds },
         $or: [
           { createdAt: { $gte: activityStart } },
           { reviewedAt: { $gte: activityStart } },
         ],
-      }).populate("employee", "name").populate("leaveType", "name")
+      }).populate("employee", "name profilePic").populate("leaveType", "name")
         .select("employee leaveType status days createdAt reviewedAt").sort({ updatedAt: -1 }).limit(8).lean(),
       attendanceModel.find({
         date: { $gte: attendanceFrom, $lte: date },
         checkIn: { $exists: true },
-      }).populate("employee", "name")
+      }).populate("employee", "name profilePic")
         .select("employee status date checkIn lateMinutes").sort({ checkIn: -1 }).limit(8).lean(),
     ]);
 
@@ -156,7 +156,9 @@ export const dashboardAdmin = async (req, res) => {
         activities.push({
           id: `onboarding-${profile._id}`,
           kind: "onboarding",
+          name: profile.name,
           title: `${profile.name} submitted onboarding`,
+          profilePic: profile.profilePic,
           detail: "Pending review",
           timestamp: profile.onboardingSubmittedAt,
         });
@@ -165,7 +167,9 @@ export const dashboardAdmin = async (req, res) => {
         activities.push({
           id: `approved-${profile._id}`,
           kind: "approved",
+          name: profile.name,
           title: `${profile.name} profile approved`,
+          profilePic: profile.profilePic,
           detail: "Employee is ready for attendance",
           timestamp: profile.approvedAt,
         });
@@ -174,7 +178,9 @@ export const dashboardAdmin = async (req, res) => {
         activities.push({
           id: `rejected-${profile._id}`,
           kind: "rejected",
+          name: profile.name,
           title: `${profile.name} profile needs changes`,
+          profilePic: profile.profilePic,
           detail: profile.rejectionNote || "Returned for updates",
           timestamp: profile.updatedAt,
         });
@@ -185,7 +191,9 @@ export const dashboardAdmin = async (req, res) => {
         activities.push({
           id: `leave-${leave._id}`,
           kind: "leave",
+          name: leave.employee?.name || "Employee",
           title: `${leave.employee?.name || "Employee"} requested ${leave.leaveType?.name || "leave"}`,
+          profilePic: leave.employee?.profilePic,
           detail: `${leave.status} · ${leave.days} working day${leave.days === 1 ? "" : "s"}`,
           timestamp: leave.createdAt,
         });
@@ -194,7 +202,9 @@ export const dashboardAdmin = async (req, res) => {
         activities.push({
           id: `leave-review-${leave._id}`,
           kind: leave.status === "approved" ? "approved" : "rejected",
+          name: leave.employee?.name || "Employee",
           title: `Leave ${leave.status} for ${leave.employee?.name || "employee"}`,
+          profilePic: leave.employee?.profilePic,
           detail: `${leave.leaveType?.name || "Leave"} · ${leave.days} working day${leave.days === 1 ? "" : "s"}`,
           timestamp: leave.reviewedAt,
         });
@@ -204,7 +214,9 @@ export const dashboardAdmin = async (req, res) => {
       activities.push({
         id: `attendance-${record._id}`,
         kind: record.status === "late" ? "late" : "attendance",
+        name: record.employee?.name || "Employee",
         title: `${record.employee?.name || "Employee"} checked in`,
+        profilePic: record.employee?.profilePic,
         detail: record.status === "late"
           ? `Late · ${record.lateMinutes || 0} minutes`
           : `On time · ${record.date}`,

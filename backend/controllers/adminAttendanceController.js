@@ -28,7 +28,7 @@ const getDayData = async (date) => {
     role: "employee",
     isActive: true,
     onboardingStatus: "approved",
-  }).select("_id name email department shiftStart shiftEnd joiningDate approvedAt").sort({ name: 1 }).lean();
+  }).select("_id name email profilePic department shiftStart shiftEnd joiningDate approvedAt").sort({ name: 1 }).lean();
   const [resolved, context, settings, automation, missingCheckOuts, openMissingCheckOutCount, yesterdayMissingCheckOutCount, olderMissingCheckOutCount, corrections, automationRuns, approvedLeaves] = await Promise.all([
     resolveRangeBulk(employees, date, date),
     getResolutionContext(date, date),
@@ -38,7 +38,7 @@ const getDayData = async (date) => {
       date: { $gte: sevenDaysAgo, $lte: yesterday },
       missingCheckOut: true,
       checkOut: { $exists: false },
-    }).populate("employee", "name email department").sort({ date: -1 }).limit(50).lean(),
+    }).populate("employee", "name email profilePic department").sort({ date: -1 }).limit(50).lean(),
     attendanceModel.countDocuments({
       date: { $gte: sevenDaysAgo, $lte: yesterday },
       missingCheckOut: true,
@@ -57,7 +57,7 @@ const getDayData = async (date) => {
     attendanceCorrectionModel.find({
       date: { $gte: addDays(date, -6), $lte: date },
       createdAt: { $lt: dayEnd },
-    }).populate("employee", "name").populate("correctedBy", "name").sort({ createdAt: -1 }).limit(10).lean(),
+    }).populate("employee", "name profilePic").populate("correctedBy", "name").sort({ createdAt: -1 }).limit(10).lean(),
     attendanceAutomationRunModel.find({ createdAt: { $gte: new Date(`${sevenDaysAgo}T00:00:00+05:00`), $lt: dayEnd } })
       .populate("initiatedBy", "name").sort({ createdAt: -1 }).limit(10).lean(),
     employees.length ? leaveRequestModel.find({

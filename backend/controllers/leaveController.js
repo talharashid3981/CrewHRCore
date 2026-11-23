@@ -52,7 +52,7 @@ const publicRequest = (request) => ({
 });
 const idError = (res) => res.status(400).json({ success: false, message: "Invalid id" });
 const populatedLeave = (query) => query
-  .populate("employee", "name email department designation")
+  .populate("employee", "name email department designation profilePic")
   .populate("leaveType", "name yearlyQuota isUnlimited carryForwardDays documentRequiredAfterDays minimumNoticeDays");
 
 const resolveAdminFilter = async (req, res) => {
@@ -295,7 +295,7 @@ export const listLeaves = async (req, res) => {
 export const getAdminLeaveDetail = async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return idError(res);
   const request = await leaveRequestModel.findById(req.params.id)
-    .populate("employee", "name email department designation isActive")
+    .populate("employee", "name email department designation profilePic isActive")
     .populate("leaveType", "name yearlyQuota isUnlimited carryForwardDays documentRequiredAfterDays minimumNoticeDays");
   if (!request || !request.employee?.isActive) return res.status(404).json({ success: false, message: "Leave request not found" });
   const policy = await getLeavePolicy();
@@ -381,7 +381,7 @@ export const approveLeave = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) return idError(res);
     const request = await leaveRequestModel.findById(req.params.id)
-      .populate("employee", "name email isActive notificationPreferences")
+      .populate("employee", "name email profilePic isActive notificationPreferences")
       .populate("leaveType", "name yearlyQuota isActive");
     if (!request || !request.employee?.isActive) return res.status(404).json({ success: false, message: "Leave request not found" });
     if (request.status !== "pending") return res.status(409).json({ success: false, message: "Only pending requests can be approved" });
@@ -397,7 +397,7 @@ export const approveLeave = async (req, res) => {
       { _id: request._id, status: "pending" },
       { $set: { status: "approved", days: request.duration === "half" ? 0.5 : working.days, reviewedBy: req.user._id, reviewedAt: new Date() } },
       { new: true },
-    ).populate("employee", "name email").populate("leaveType", "name");
+    ).populate("employee", "name email profilePic").populate("leaveType", "name");
     if (!updated) return res.status(409).json({ success: false, message: "Request already processed" });
     if (updated.employee && updated.employee.notificationPreferences?.leaveUpdates !== false) {
       void sendLeaveApprovedEmail(updated.employee, updated)
@@ -419,7 +419,7 @@ export const rejectLeave = async (req, res) => {
       { _id: req.params.id, status: "pending" },
       { $set: { status: "rejected", reviewNote: parsed.data.note, reviewedBy: req.user._id, reviewedAt: new Date() } },
       { new: true },
-    ).populate("employee", "name email notificationPreferences").populate("leaveType", "name");
+    ).populate("employee", "name email profilePic notificationPreferences").populate("leaveType", "name");
     if (!request) return res.status(409).json({ success: false, message: "Pending leave request not found or already processed" });
     if (request.employee && request.employee.notificationPreferences?.leaveUpdates !== false) {
       void sendLeaveRejectedEmail(request.employee, request, parsed.data.note)

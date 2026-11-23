@@ -29,6 +29,7 @@ import {
   uploadMyProfileImage,
 } from "../api/auth.api";
 import useToastMessage from "../hooks/useToastMessage";
+import ProfileAvatar from "../components/ProfileAvatar";
 import {
   profileImageAccept,
   validateProfileImage,
@@ -41,15 +42,6 @@ const defaultPreferences = {
   attendanceReminders: true,
   weeklySummary: false,
 };
-
-const initials = (name = "") =>
-  name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join("") || "U";
 
 const getPasswordStrength = (password) => {
   if (!password) return { score: 0, label: "Enter a new password" };
@@ -131,7 +123,6 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
   const profileImagePreviewUrl = useRef("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [failedAvatarUrl, setFailedAvatarUrl] = useState("");
   useToastMessage(error, "error");
   useToastMessage(notice, "success");
 
@@ -156,7 +147,7 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
   );
   const isProfileDirty = profileForm.name !== (user?.name || "");
   const avatarUrl = profileImagePreview || profileForm.profilePic;
-  const hasProfileImage = Boolean(avatarUrl && avatarUrl !== failedAvatarUrl);
+  const hasProfileImage = Boolean(avatarUrl);
   const joinedDate = user?.joiningDate
     ? dayjs(user.joiningDate).format("DD MMM YYYY")
     : "Not provided";
@@ -217,7 +208,6 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
         profilePic: result.user.profilePic || "",
       }));
       updateSelectedProfileImage(null);
-      setFailedAvatarUrl("");
       setNotice(result.message || "Profile photo updated.");
     } catch (requestError) {
       setError(
@@ -347,18 +337,13 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
                   className="group relative mx-auto grid h-[88px] w-[88px] cursor-pointer place-items-center rounded-full font-['Poppins',sans-serif] text-[26px] font-semibold text-white shadow-[0_8px_20px_rgba(106,13,173,0.22)] ring-4 ring-white focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-violet-600"
                 >
                   <span className="absolute inset-0 overflow-hidden rounded-full bg-gradient-to-br from-[#6A0DAD] to-[#7C3AED]">
-                    {hasProfileImage ? (
-                      <img
-                        alt={`${profileForm.name || "User"} profile`}
-                        className="h-full w-full object-cover"
-                        onError={() => setFailedAvatarUrl(avatarUrl)}
-                        src={avatarUrl}
-                      />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center">
-                        {initials(profileForm.name)}
-                      </span>
-                    )}
+                    <ProfileAvatar
+                      alt={`${profileForm.name || "User"} profile`}
+                      className="h-full w-full"
+                      fallbackClassName="bg-gradient-to-br from-[#6A0DAD] to-[#7C3AED]"
+                      name={profileForm.name}
+                      src={avatarUrl}
+                    />
                   </span>
                   <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center gap-1 rounded-full bg-slate-950/60 text-[11px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     {uploadingProfileImage ? (
@@ -392,7 +377,6 @@ export default function AccountSettings({ user, updateUser, onSignOut }) {
                         return;
                       }
                       setError("");
-                      setFailedAvatarUrl("");
                       updateSelectedProfileImage(file);
                       event.target.value = "";
                       void uploadProfilePhoto(file);

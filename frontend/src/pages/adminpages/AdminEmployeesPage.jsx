@@ -33,6 +33,7 @@ import {
 } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
 import useToastMessage from "../../hooks/useToastMessage";
+import ProfileAvatar from "../../components/ProfileAvatar";
 
 const emptySummary = { total: 0, incomplete: 0, pending: 0, approved: 0, rejected: 0, unclassified: 0, active: 0, inactive: 0 };
 const statusItems = [
@@ -651,11 +652,11 @@ function AccountBadge({ isActive, status }) {
 }
 
 function Avatar({ employee }) {
-  return employee.profilePic
-    ? <img className="size-10 shrink-0 rounded-full object-cover" src={employee.profilePic} alt="" />
-    : <span className="grid size-10 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-[13px] font-semibold text-violet-800">
-      {initials(employee.name)}
-    </span>;
+  return <ProfileAvatar
+    className="size-10 bg-violet-100 font-['Poppins',sans-serif] text-[13px] font-semibold text-violet-800"
+    name={employee.name}
+    src={employee.profilePic}
+  />;
 }
 
 function TableMessage({ children }) {
@@ -700,10 +701,6 @@ function SecondaryButton({ children, onClick }) {
 
 function numberFormat(value) {
   return new Intl.NumberFormat("en").format(value || 0);
-}
-
-function initials(value = "") {
-  return value.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || "HR";
 }
 
 function dateValue(value) {

@@ -28,6 +28,7 @@ import {
   getOfficeSettings,
 } from "../../api/auth.api";
 import useToastMessage from "../../hooks/useToastMessage";
+import ProfileAvatar from "../../components/ProfileAvatar";
 
 const statusStyle = {
   pending: "bg-amber-50 text-amber-800 ring-amber-200",
@@ -60,9 +61,6 @@ const formatDate = (value, options = { day: "2-digit", month: "short", year: "nu
 const formatTime = (value) => value
   ? new Intl.DateTimeFormat("en", { timeZone: "Asia/Karachi", hour: "2-digit", minute: "2-digit", hour12: true }).format(new Date(value))
   : "";
-
-const initials = (value = "") =>
-  value.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "EM";
 
 export default function AdminLeavesPage() {
   const [tab, setTab] = useState("requests");
@@ -421,9 +419,7 @@ export default function AdminLeavesPage() {
                 <div className="flex min-h-[420px] min-w-0 flex-col">
                   <div className="border-b border-slate-100 p-4 sm:p-5">
                     <div className="flex items-start gap-3">
-                      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-[14px] font-semibold text-violet-800">
-                        {initials(selectedLeave.employee?.name)}
-                      </span>
+                      <ProfileAvatar className="size-11 bg-violet-100 font-['Poppins',sans-serif] text-[14px] font-semibold text-violet-800" name={selectedLeave.employee?.name} src={selectedLeave.employee?.profilePic} />
                       <div className="min-w-0 flex-1">
                         <h2 className="truncate font-['Poppins',sans-serif] text-[18px] font-semibold text-slate-900">{selectedLeave.employee?.name || "Employee"}</h2>
                         <p className="mt-0.5 truncate text-[13px] text-slate-600">{[selectedLeave.employee?.designation, selectedLeave.employee?.department].filter(Boolean).join(" · ") || selectedLeave.employee?.email}</p>
@@ -627,7 +623,7 @@ function RequestRow({ leave, selected, onClick }) {
       aria-pressed={selected}
       className={`grid w-full grid-cols-[40px_minmax(0,1fr)] items-center gap-3 rounded-xl border p-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600 sm:grid-cols-[40px_minmax(0,1fr)_auto] ${selected ? "border-violet-400 bg-violet-50/60 ring-2 ring-violet-100" : "border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50/30"}`}
     >
-      <span className="grid size-10 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(leave.employee?.name)}</span>
+      <ProfileAvatar className="size-10 bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800" name={leave.employee?.name} src={leave.employee?.profilePic} />
       <span className="min-w-0">
         <span className="flex items-center justify-between gap-2">
           <span className="truncate text-[13px] font-semibold text-slate-900">{leave.employee?.name || "Employee"}</span>
@@ -652,7 +648,7 @@ function DecidedRow({ leave }) {
   const approved = leave.status === "approved";
   return (
     <div className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-1.5 py-2">
-      <span className="grid size-9 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(leave.employee?.name)}</span>
+      <ProfileAvatar className="size-9 bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800" name={leave.employee?.name} src={leave.employee?.profilePic} />
       <span className="min-w-0">
         <span className="block truncate text-[13px] font-semibold text-slate-800">{leave.employee?.name || "Employee"}</span>
         <span className="block truncate text-xs text-slate-600">{leave.leaveType?.name || "Leave"} · {formatDate(leave.from, { weekday: "short", day: "numeric", month: "short" })} · {leave.days} working day{leave.days === 1 ? "" : "s"}</span>

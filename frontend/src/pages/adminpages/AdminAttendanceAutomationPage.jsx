@@ -27,6 +27,7 @@ import {
   runAttendanceAutomation,
 } from "../../api/auth.api";
 import useToastMessage from "../../hooks/useToastMessage";
+import ProfileAvatar from "../../components/ProfileAvatar";
 
 const statusStyles = {
   present: "bg-green-50 text-green-700 ring-green-200",
@@ -304,7 +305,7 @@ export default function AdminAttendanceAutomationPage({ onNavigate }) {
                   {data.rows.map((row) => <tr key={row.employee.id} className="group border-t border-slate-100 hover:bg-violet-50/30">
                     <td className="border-t border-slate-100 px-2 py-2.5">
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(row.employee.name)}</span>
+                        <ProfileAvatar className="size-9 bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800" name={row.employee.name} src={row.employee.profilePic} />
                         <div className="min-w-0">
                           <p className="truncate text-[13px] font-semibold text-slate-800">{row.employee.name}</p>
                           <p className="truncate text-xs text-slate-600" title={row.employee.email}>{row.employee.email}</p>
@@ -356,7 +357,7 @@ export default function AdminAttendanceAutomationPage({ onNavigate }) {
           </div>
           <div className="mt-1.5">
             {missingRows.length ? missingRows.slice(0, 5).map((item) => <div key={item.attendanceId} className="flex items-center gap-2 border-b border-slate-100 py-2 last:border-0">
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(item.employee?.name)}</span>
+              <ProfileAvatar className="size-9 bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800" name={item.employee?.name} src={item.employee?.profilePic} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-semibold text-slate-800">{item.employee?.name || "Employee"}</p>
                 {item.employee?.email && <p className="truncate text-xs text-slate-600" title={item.employee.email}>{item.employee.email}</p>}
@@ -432,7 +433,7 @@ function AttendanceMobileCard({ row, onCorrect }) {
 
   return <article className="px-2">
     <button type="button" aria-expanded={expanded} aria-controls={detailsId} aria-label={`${expanded ? "Hide" : "Show"} attendance details for ${row.employee.name}`} onClick={() => setExpanded((value) => !value)} className="flex min-h-12 w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-violet-50/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600">
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(row.employee.name)}</span>
+      <ProfileAvatar className="size-8 bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800" name={row.employee.name} src={row.employee.profilePic} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13px] font-semibold text-slate-800">{row.employee.name}</span>
         <span className="block truncate text-xs text-slate-600" title={row.employee.email}>{row.employee.email}</span>
@@ -599,10 +600,6 @@ function showingRows(pagination) {
 function changePage(setLoading, setPage, nextPage) {
   setLoading(true);
   setPage(nextPage);
-}
-
-function initials(name = "") {
-  return name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || "E";
 }
 
 function capitalize(value = "") {

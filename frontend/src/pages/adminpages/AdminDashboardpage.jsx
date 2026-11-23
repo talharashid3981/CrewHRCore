@@ -26,6 +26,7 @@ import AdminReportsPage from "./AdminReportsPage";
 import AdminCalendarPage from "./AdminCalendarPage";
 import useToastMessage from "../../hooks/useToastMessage";
 import BrandLogo from "../../components/BrandLogo";
+import ProfileAvatar from "../../components/ProfileAvatar";
 
 const navItems = [
   { section: "Overview", label: "Dashboard", icon: LayoutDashboard },
@@ -157,7 +158,7 @@ export default function AdminDashboardpage() {
 
       <div className="mt-auto hidden rounded-2xl border border-[#E9E5F7] bg-white/90 p-3 md:block">
         <div className="flex items-center gap-2.5">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-[13px] font-semibold text-violet-800">{initials(user?.name)}</span>
+          <ProfileAvatar className="size-10 bg-violet-100 font-['Poppins',sans-serif] text-[13px] font-semibold text-violet-800" name={user?.name} src={user?.profilePic} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[13px] font-semibold text-slate-800">{user?.name || "Administrator"}</p>
             <p className="truncate text-xs text-slate-600">Administrator</p>
@@ -195,7 +196,7 @@ export default function AdminDashboardpage() {
     <div className="border-t border-[#E9E5F7] bg-white/95 px-4 py-3 md:hidden">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-[13px] font-semibold text-violet-800">{user?.name?.[0]?.toUpperCase() || "A"}</span>
+          <ProfileAvatar className="size-9 bg-violet-100 font-['Poppins',sans-serif] text-[13px] font-semibold text-violet-800" name={user?.name} src={user?.profilePic} />
           <span className="truncate text-[13px] font-medium text-slate-700">{user?.name || "Administrator"}</span>
         </div>
         <button className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold text-slate-600 transition hover:bg-red-50 hover:text-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600" onClick={signOut}><LogOut size={16} />Sign out</button>
@@ -215,10 +216,6 @@ function NavButton({ active, onClick, icon: Icon, children, badge }) {
     <span className="whitespace-nowrap md:whitespace-normal">{children}</span>
     {badge > 0 && <span className={`ml-auto rounded-full px-1.5 py-0.5 text-xs font-semibold ${active ? "bg-white text-violet-800" : "bg-violet-100 text-violet-800"}`}>{badge}</span>}
   </button>;
-}
-
-function initials(value = "") {
-  return value.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || "HR";
 }
 
 function getGreeting() {

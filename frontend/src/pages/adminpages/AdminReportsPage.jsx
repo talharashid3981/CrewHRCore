@@ -20,6 +20,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { exportMonthlyReport, getEmployeeMonthlyReport, getMonthlyReport } from "../../api/auth.api";
 import useToastMessage from "../../hooks/useToastMessage";
+import ProfileAvatar from "../../components/ProfileAvatar";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -43,9 +44,6 @@ const barSegments = [
   { key: "leave", label: "On leave", color: "bg-violet-600" },
   { key: "absent", label: "Absent", color: "bg-red-700" },
 ];
-
-const initials = (name = "") =>
-  name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || "U";
 
 const formatMinutes = (minutes = 0) => {
   const safeMinutes = Math.max(0, Math.round(minutes));
@@ -477,7 +475,7 @@ export default function AdminReportsPage() {
                       <tr className="transition hover:bg-violet-50/35" key={employee.id}>
                         <td className="px-4 py-2 sm:px-5">
                           <button type="button" onClick={() => openDetail(report)} className="flex min-w-0 items-center gap-2.5 text-left">
-                            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(employee.name)}</span>
+                            <ProfileAvatar className="size-9 bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800" name={employee.name} src={employee.profilePic} />
                             <span className="min-w-0">
                               <span className="block max-w-[180px] truncate text-[13px] font-semibold text-slate-800 hover:text-violet-800">{employee.name}</span>
                               <span className="block max-w-[180px] truncate text-xs text-slate-600">{employee.email}</span>
@@ -531,7 +529,7 @@ export default function AdminReportsPage() {
           <section role="dialog" aria-modal="true" aria-labelledby="report-detail-title" className="my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-2.5rem)]">
             <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(selected.employee?.name)}</span>
+                <ProfileAvatar className="size-10 bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800" name={selected.employee?.name} src={selected.employee?.profilePic} />
                 <div className="min-w-0">
                   <h2 id="report-detail-title" className="truncate font-['Poppins',sans-serif] text-xl font-semibold text-slate-900">{selected.employee?.name || "Employee detail"}</h2>
                   <p className="truncate text-[13px] text-slate-600">{selected.employee?.email} · {dayjs(`${selected.month}-01`).format("MMMM YYYY")}</p>

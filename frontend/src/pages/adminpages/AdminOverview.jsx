@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { getAdminDashboard } from "../../api/auth.api";
 import useToastMessage from "../../hooks/useToastMessage";
+import ProfileAvatar from "../../components/ProfileAvatar";
 
 const numberFormat = new Intl.NumberFormat("en");
 const dateFormat = new Intl.DateTimeFormat("en", {
@@ -22,15 +23,6 @@ const statusItems = [
   { key: "incomplete", label: "Incomplete", color: "bg-slate-400" },
   { key: "rejected", label: "Rejected", color: "bg-red-700" },
 ];
-const activityColors = [
-  "bg-violet-700",
-  "bg-purple-800",
-  "bg-violet-600",
-  "bg-violet-800",
-  "bg-violet-600",
-  "bg-slate-600",
-];
-
 export default function AdminOverview({ onDataLoaded, onNavigate }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -367,17 +359,15 @@ function ActivityPanel({ activities, className = "" }) {
         : <span className="text-xs font-medium text-slate-600">Last 7 days</span>}
     </div>
     {visibleActivities.length ? <div className="mt-2">
-      {visibleActivities.map((item, index) => <ActivityItem key={item.id} item={item} index={index} />)}
+      {visibleActivities.map((item) => <ActivityItem key={item.id} item={item} />)}
     </div> : <p className="py-8 text-center text-[13px] text-slate-600">No recent activity in the last 7 days.</p>}
   </section>;
 }
 
-function ActivityItem({ item, index }) {
-  const name = item.title.split(/ submitted onboarding| profile approved| profile needs changes| requested | checked in| checked out/i)[0];
+function ActivityItem({ item }) {
+  const name = item.name || item.title.split(/ submitted onboarding| profile approved| profile needs changes| requested | checked in| checked out/i)[0];
   return <div className="flex min-w-0 items-center gap-3 border-b border-slate-100 py-2 last:border-0">
-    <span className={`grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white ${activityColors[index % activityColors.length]}`}>
-      {initials(name)}
-    </span>
+    <ProfileAvatar className="size-9 bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800" name={name} src={item.profilePic} />
     <div className="min-w-0 flex-1">
       <p className="truncate text-[13px] font-semibold text-slate-800">{item.title}</p>
       <p className="mt-0.5 truncate text-xs text-slate-600">{formatTime(item.timestamp)} · {item.detail}</p>
@@ -391,10 +381,6 @@ function DashboardLoading() {
     <div className="grid gap-4 lg:grid-cols-[1.42fr_1fr]"><div className="h-[230px] rounded-2xl bg-violet-100" /><div className="h-[230px] rounded-2xl border border-slate-200 bg-white" /></div>
     <div className="grid gap-4 lg:grid-cols-2 min-[1200px]:!grid-cols-3">{[0, 1, 2].map((item) => <div className={`h-[340px] rounded-2xl border border-slate-200 bg-white ${item === 2 ? "lg:col-span-2 min-[1200px]:!col-span-1" : ""}`} key={item} />)}</div>
   </section>;
-}
-
-function initials(value = "") {
-  return value.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || "HR";
 }
 
 function formatDate(value) {
