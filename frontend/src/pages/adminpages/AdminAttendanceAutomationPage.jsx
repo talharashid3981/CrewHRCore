@@ -305,7 +305,11 @@ export default function AdminAttendanceAutomationPage({ onNavigate }) {
                     <td className="border-t border-slate-100 px-2 py-2.5">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(row.employee.name)}</span>
-                        <div className="min-w-0"><p className="truncate text-[13px] font-semibold text-slate-800">{row.employee.name}</p><p className="truncate text-xs text-slate-600">{row.department}</p></div>
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-semibold text-slate-800">{row.employee.name}</p>
+                          <p className="truncate text-xs text-slate-600" title={row.employee.email}>{row.employee.email}</p>
+                          <p className="truncate text-xs text-slate-500">{row.department}</p>
+                        </div>
                       </div>
                     </td>
                     <td className="border-t border-slate-100 px-2 py-2.5 text-[13px] text-slate-700">{formatTime(row.checkIn)}</td>
@@ -353,7 +357,11 @@ export default function AdminAttendanceAutomationPage({ onNavigate }) {
           <div className="mt-1.5">
             {missingRows.length ? missingRows.slice(0, 5).map((item) => <div key={item.attendanceId} className="flex items-center gap-2 border-b border-slate-100 py-2 last:border-0">
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(item.employee?.name)}</span>
-              <div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold text-slate-800">{item.employee?.name || "Employee"}</p><p className="truncate text-xs text-slate-600">{formatShortDate(item.date)} · In {formatTime(item.checkIn)} · No check-out</p></div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-semibold text-slate-800">{item.employee?.name || "Employee"}</p>
+                {item.employee?.email && <p className="truncate text-xs text-slate-600" title={item.employee.email}>{item.employee.email}</p>}
+                <p className="truncate text-xs text-slate-500">{formatShortDate(item.date)} · In {formatTime(item.checkIn)} · No check-out</p>
+              </div>
               <button type="button" onClick={() => openCorrection({ attendanceId: item.attendanceId, employee: item.employee, date: item.date, checkIn: item.checkIn })} disabled={item.date >= today} className="shrink-0 rounded-lg bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800 transition hover:bg-violet-100 disabled:opacity-40">Fix</button>
             </div>) : <p className="px-2 py-5 text-center text-[13px] text-slate-600">No missing check-outs in this group.</p>}
           </div>
@@ -383,6 +391,7 @@ export default function AdminAttendanceAutomationPage({ onNavigate }) {
     {correction && <Modal title="Fix missing check-out" icon={<Clock3 size={16} />} onClose={() => !savingCorrection && setCorrection(null)}>
       <div className="mb-3 rounded-xl bg-slate-50 px-3 py-2.5">
         <p className="text-[14px] font-semibold text-slate-800">{correction.employee?.name || correction.employee?.email || "Employee"}</p>
+        {correction.employee?.email && <p className="mt-0.5 break-all text-[13px] text-slate-600">{correction.employee.email}</p>}
         <p className="mt-0.5 text-[13px] text-slate-600">{formatShortDate(correction.date || date)} · checked in {formatTime(correction.checkIn)}</p>
       </div>
       <form onSubmit={saveCorrection} className="space-y-3">
@@ -424,7 +433,11 @@ function AttendanceMobileCard({ row, onCorrect }) {
   return <article className="px-2">
     <button type="button" aria-expanded={expanded} aria-controls={detailsId} aria-label={`${expanded ? "Hide" : "Show"} attendance details for ${row.employee.name}`} onClick={() => setExpanded((value) => !value)} className="flex min-h-12 w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-violet-50/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600">
       <span className="grid size-8 shrink-0 place-items-center rounded-full bg-violet-100 font-['Poppins',sans-serif] text-xs font-semibold text-violet-800">{initials(row.employee.name)}</span>
-      <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-slate-800">{row.employee.name}</span><span className="block truncate text-xs text-slate-600">{row.department}</span></span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-semibold text-slate-800">{row.employee.name}</span>
+        <span className="block truncate text-xs text-slate-600" title={row.employee.email}>{row.employee.email}</span>
+        <span className="block truncate text-xs text-slate-500">{row.department}</span>
+      </span>
       {compactSummary && <span className="hidden max-w-24 shrink-0 truncate text-xs text-slate-600 @min-[540px]/attendance-log:inline">{compactSummary}</span>}
       <StatusBadge status={row.status} />
       <ChevronDown size={16} className={`shrink-0 text-slate-500 transition-transform ${expanded ? "rotate-180" : ""}`} />

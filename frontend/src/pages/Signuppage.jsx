@@ -9,7 +9,6 @@ import {
   Plus,
   Upload,
   UserRound,
-  UsersRound,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useToastMessage from "../hooks/useToastMessage";
@@ -19,6 +18,7 @@ import {
   profileImageAccept,
   validateProfileImage,
 } from "../utils/profileImage";
+import BrandLogo from "../components/BrandLogo";
 
 const steps = [
   {
@@ -55,11 +55,7 @@ function SignupBrandPanel() {
 
       <div className="relative flex items-center gap-[14px]">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white shadow-lg shadow-purple-950/15 ring-1 ring-white/15 lg:h-[50px] lg:w-[50px]">
-          <UsersRound
-            size={26}
-            strokeWidth={1.8}
-            className="lg:h-[30px] lg:w-[30px]"
-          />
+          <BrandLogo alt="" />
         </div>
         <span className="font-['Poppins',sans-serif] text-xl font-semibold tracking-tight lg:text-2xl">
           Crew HRCore

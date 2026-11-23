@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   CalendarCheck,
   CalendarDays,
@@ -12,7 +12,6 @@ import {
   Settings,
   UserRound,
   Users,
-  UsersRound,
   X,
 } from "lucide-react";
 import { exportMonthlyReport } from "../../api/auth.api";
@@ -26,6 +25,7 @@ import AdminOverview from "./AdminOverview";
 import AdminReportsPage from "./AdminReportsPage";
 import AdminCalendarPage from "./AdminCalendarPage";
 import useToastMessage from "../../hooks/useToastMessage";
+import BrandLogo from "../../components/BrandLogo";
 
 const navItems = [
   { section: "Overview", label: "Dashboard", icon: LayoutDashboard },
@@ -35,11 +35,19 @@ const navItems = [
   { section: "Calendar", label: "Calendar", icon: CalendarDays },
   { section: "Reports", label: "Reports", icon: FileBarChart },
 ];
+const adminSections = new Set([
+  "Overview",
+  ...navItems.filter((item) => item.section !== "Overview").map((item) => item.section),
+  "Office settings",
+  "Account settings",
+]);
 
 export default function AdminDashboardpage() {
   const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
-  const [section, setSection] = useState("Overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSection = searchParams.get("section");
+  const section = adminSections.has(requestedSection) ? requestedSection : "Overview";
   const [employeeStatus, setEmployeeStatus] = useState("");
   const [dashboardData, setDashboardData] = useState(null);
   const [exporting, setExporting] = useState(false);
@@ -63,14 +71,19 @@ export default function AdminDashboardpage() {
 
   const navigateTo = useCallback((target, nextEmployeeStatus = "") => {
     setMobileMenuOpen(false);
+    const nextSection = target === "Approvals" ? "Employees" : target;
     if (target === "Approvals") {
       setEmployeeStatus("pending");
-      setSection("Employees");
-      return;
+    } else if (target === "Employees") {
+      setEmployeeStatus(nextEmployeeStatus);
     }
-    if (target === "Employees") setEmployeeStatus(nextEmployeeStatus);
-    setSection(target);
-  }, []);
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      if (nextSection === "Overview") nextParams.delete("section");
+      else nextParams.set("section", nextSection);
+      return nextParams;
+    });
+  }, [setSearchParams]);
 
   const exportReport = async () => {
     setExporting(true);
@@ -102,7 +115,7 @@ export default function AdminDashboardpage() {
   return <main className="min-h-screen bg-[linear-gradient(160deg,#F3E8FF_0%,#F8FAFC_55%,#EDE9FE_100%)] font-['Inter',sans-serif] text-slate-800 md:flex">
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[#E9E5F7] bg-white/95 px-3 backdrop-blur md:hidden">
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,#4C1D95_0%,#6A0DAD_55%,#7C3AED_100%)] text-white"><UsersRound size={18} /></span>
+        <span className="grid size-9 shrink-0 place-items-center"><BrandLogo alt="" /></span>
         <span className="truncate font-['Poppins',sans-serif] text-[15px] font-semibold text-slate-900">Crew HRCore</span>
       </div>
       <div className="flex shrink-0 items-center gap-1">
@@ -115,7 +128,7 @@ export default function AdminDashboardpage() {
     <aside id="admin-sidebar" className={`fixed inset-y-0 left-0 z-40 flex h-screen w-[280px] shrink-0 flex-col border-r border-[#E9E5F7] bg-white/95 px-4 py-4 shadow-xl backdrop-blur transition-transform duration-200 md:sticky md:top-0 md:z-20 md:h-screen md:w-[228px] md:border-b-0 md:px-4 md:py-6 md:shadow-none ${mobileMenuOpen ? "visible translate-x-0" : "invisible -translate-x-full"} md:visible md:translate-x-0`}>
       <div className="flex items-center justify-between gap-3 px-1 md:px-1.5">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,#4C1D95_0%,#6A0DAD_55%,#7C3AED_100%)] text-white shadow-[0_6px_14px_rgba(106,13,173,.2)]"><UsersRound size={20} /></span>
+          <span className="grid size-10 shrink-0 place-items-center"><BrandLogo alt="" /></span>
           <span className="min-w-0">
             <span className="block truncate font-['Poppins',sans-serif] text-[16px] font-semibold leading-5 tracking-[-.3px] text-slate-900">Crew HRCore</span>
             <span className="mt-0.5 block text-xs font-medium text-violet-800">Admin workspace</span>

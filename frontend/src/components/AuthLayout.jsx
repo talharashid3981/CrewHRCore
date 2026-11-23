@@ -1,4 +1,5 @@
-import { CalendarCheck, Clock3, UsersRound } from "lucide-react";
+import { CalendarCheck, Clock3 } from "lucide-react";
+import BrandLogo from "./BrandLogo";
 
 const highlights = [
   {
@@ -61,19 +62,13 @@ export default function AuthLayout({
             }`}
           >
             <span
-              className={`grid shrink-0 place-items-center bg-white/15 text-white shadow-lg shadow-purple-950/15 ring-1 ring-white/15 ${
+              className={`grid shrink-0 place-items-center  text-white  ${
                 loginStyle
                   ? "h-10 w-10 rounded-lg lg:h-[50px] lg:w-[50px]"
                   : "size-11 rounded-xl sm:size-[50px]"
               }`}
             >
-              <UsersRound
-                size={loginStyle ? 26 : 25}
-                strokeWidth={1.8}
-                className={
-                  loginStyle ? "lg:h-[30px] lg:w-[30px]" : "sm:size-[30px]"
-                }
-              />
+              <BrandLogo alt="" />
             </span>
             <span
               className={`font-['Poppins',sans-serif] text-xl font-semibold tracking-tight ${

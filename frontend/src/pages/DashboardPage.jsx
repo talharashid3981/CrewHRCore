@@ -10,7 +10,8 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import BrandLogo from "../components/BrandLogo";
 import AttendancePage from "./AttendancePage";
 import HolidayCalendarPage from "./HolidayCalendarPage";
 import LeavePage from "./LeavePage";
@@ -25,6 +26,7 @@ const tabs = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "settings", label: "Account settings", icon: SlidersHorizontal },
 ];
+const tabIds = new Set(tabs.map(({ id }) => id));
 
 const initials = (name = "") =>
   name
@@ -37,8 +39,19 @@ const initials = (name = "") =>
 export default function DashboardPage() {
   const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const activeTab = tabIds.has(requestedTab) ? requestedTab : "dashboard";
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const setActiveTab = (tab) => {
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      if (tab === "dashboard") nextParams.delete("tab");
+      else nextParams.set("tab", tab);
+      return nextParams;
+    });
+  };
 
   const signOut = async () => {
     await logout();
@@ -50,8 +63,8 @@ export default function DashboardPage() {
       <aside className="relative z-30 border-b border-[#E9E5F7] bg-white p-3 sm:px-5 sm:py-3 lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-[212px] lg:flex-col lg:border-b-0 lg:border-r lg:p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2 px-1 lg:px-2">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#4C1D95] via-[#6A0DAD] to-[#7C3AED] text-white shadow-[0_6px_14px_rgba(106,13,173,0.28)]">
-              <UsersRound size={20} strokeWidth={2} />
+            <span className="grid h-9 w-9 shrink-0 place-items-center">
+              <BrandLogo alt="" />
             </span>
             <span className="truncate font-['Poppins',sans-serif] text-[16px] font-semibold tracking-[-0.3px] text-slate-900">
               Crew HRCore
