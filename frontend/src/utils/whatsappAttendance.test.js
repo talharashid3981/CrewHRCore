@@ -88,6 +88,47 @@ test("uses WhatsApp Web with a URL-encoded message when Web Share is unavailable
   );
 });
 
+test("navigates to WhatsApp's mobile chat link in the current tab", async (context) => {
+  const originalNavigator = globalThis.navigator;
+  const originalWindow = globalThis.window;
+  let navigatedUrl = "";
+  let openedUrl = "";
+
+  context.after(() => {
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: originalNavigator,
+    });
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: originalWindow,
+    });
+  });
+
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)" },
+  });
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      location: {
+        assign(url) {
+          navigatedUrl = url;
+        },
+      },
+      open(url) {
+        openedUrl = url;
+        return { opener: null };
+      },
+    },
+  });
+
+  assert.equal(await shareWhatsAppMessage("Attendance\nReport"), "whatsapp");
+  assert.equal(navigatedUrl, "https://wa.me/?text=Attendance%0AReport");
+  assert.equal(openedUrl, "");
+});
+
 test("treats native share cancellation as a cancellation, not a failure", async (context) => {
   const originalNavigator = globalThis.navigator;
   const originalWindow = globalThis.window;
@@ -117,7 +158,7 @@ test("treats native share cancellation as a cancellation, not a failure", async 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      matchMedia: () => ({ matches: true }),
+      matchMedia: () => ({ matches: false }),
       open(url) {
         openedUrl = url;
         return null;
