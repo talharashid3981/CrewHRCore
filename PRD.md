@@ -440,7 +440,7 @@ Protected routes shall use JWT cookie authentication, role authorization, and on
 - MongoDB Atlas or MongoDB-compatible database
 - Brevo email API
 - Cloudinary image storage
-- WhatsApp mobile deep links, WhatsApp Web, and Web Share API
+- WhatsApp Web / native share sheet
 - Vercel frontend deployment
 - Render backend deployment
 
@@ -555,7 +555,7 @@ The release baseline is accepted when:
 - Invitation and password setup emails
 - Brevo production delivery
 - Cloudinary image upload replacement and deletion
-- Mobile WhatsApp app handoff, WhatsApp Web handoff, and manual Send confirmation
+- WhatsApp native share and WhatsApp Web handoff
 - MongoDB and cron behavior in the production environment
 - CSV and XLSX opening in spreadsheet applications
 

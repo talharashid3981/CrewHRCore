@@ -14,7 +14,7 @@ Crew HRCore is a role-based SaaS Human Resource Management System (HRMS) for man
 | **1. Project Name** | Crew HRCore |
 | **2. Department** | Web Development / MERN Stack |
 | **3. Brief Description** | A secure HRMS that enables administrators to manage employees, departments, attendance rules, leave policies, holidays, reports, and office settings. Employees can complete onboarding, record attendance using geofencing, submit leave requests, view their work records, and share attendance details through WhatsApp. |
-| **4. Technologies Used** | React, Vite, Tailwind CSS, React Router, Axios, Node.js, Express.js, MongoDB, Mongoose, JWT, bcrypt, Helmet, Express Rate Limit, Zod, node-cron, ExcelJS, Brevo email API, WhatsApp deep links, and Web Share API. |
+| **4. Technologies Used** | React, Vite, Tailwind CSS, React Router, Axios, Node.js, Express.js, MongoDB, Mongoose, JWT, bcrypt, Helmet, Express Rate Limit, Zod, node-cron, ExcelJS, Brevo email API, and WhatsApp Web Share / Web Share API. |
 | **5. Work Completed** | Authentication, employee onboarding, approval workflow, department configuration, location-based attendance, leave management, office settings, holiday calendar, automation, reports, CSV/XLSX export, email flows, WhatsApp attendance sharing, validation, access control, and deployment configuration. |
 | **6. Current Status** | Deployed and functionally complete. Final user-acceptance testing is recommended with real employee/admin accounts, location permission, email delivery, and WhatsApp group selection. |
 | **7. Project URL / Live Demo** | <https://crew-hr-core.vercel.app> |
@@ -61,7 +61,7 @@ Some real-world actions require user-controlled external services and should be 
 
 After a successful check-in or check-out, Crew HRCore prepares a saved attendance report containing the date, employee name, role, department, entry/exit time, worked hours, and attendance status.
 
-- On mobile browsers, the WhatsApp chat link opens in the current tab so the operating system can hand it to the installed WhatsApp app. If the app is unavailable, WhatsApp may open in the browser.
+- On supported mobile browsers, the native share sheet is opened.
 - On desktop, WhatsApp Web opens with the report prefilled.
 - The employee manually selects the intended WhatsApp group/contact and presses **Send**. This is intentional: web applications cannot silently send messages to a WhatsApp group without user confirmation.
 

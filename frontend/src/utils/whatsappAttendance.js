@@ -118,18 +118,6 @@ async function copyToClipboard(text) {
 }
 
 export async function shareWhatsAppMessage(message) {
-  const isMobileDevice =
-    navigator.userAgentData?.mobile === true ||
-    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "") ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) ||
-    window.matchMedia?.("(pointer: coarse)").matches;
-  const encodedMessage = encodeURIComponent(message);
-
-  if (isMobileDevice) {
-    window.location.assign(`https://wa.me/?text=${encodedMessage}`);
-    return "whatsapp";
-  }
-
   if (navigator.share) {
     try {
       await navigator.share({ text: message });
@@ -142,7 +130,10 @@ export async function shareWhatsAppMessage(message) {
     }
   }
 
-  const shareUrl = `https://web.whatsapp.com/send?text=${encodedMessage}`;
+  const isCoarsePointer = window.matchMedia?.("(pointer: coarse)").matches;
+  const shareUrl = isCoarsePointer
+    ? `https://wa.me/?text=${encodeURIComponent(message)}`
+    : `https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`;
   const openedWindow = window.open(shareUrl, "_blank");
   if (openedWindow) {
     openedWindow.opener = null;
